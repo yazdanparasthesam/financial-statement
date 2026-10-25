@@ -1,0 +1,1861 @@
+openapi: 3.1.0
+info:
+  title: Financial Statement API
+  description: 'AI-assisted financial statements & tax filing platform.
+
+
+    **Contract-first:** this file is the single source of truth for the frontend client and backend tests. Deterministic
+    core (statements, validation, workflow) computes all figures; AI endpoints (`tags: ai`) only explain/draft/suggest
+    and are logged to `ai_requests`. Roles: `preparer` (owns companies/filings) and `reviewer` (review workflow).
+    All endpoints under `/api` require `Bearer` auth except `/api/auth/register`, `/api/auth/login`, `/healthz`,
+    `/version`.'
+  version: 0.1.0
+  x-project: DataTalksClub AI Dev Tools Zoomcamp 2026 — Final Project
+paths:
+  /healthz:
+    get:
+      tags:
+      - ops
+      summary: Healthz
+      operationId: healthz_healthz_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthOut'
+  /version:
+    get:
+      tags:
+      - ops
+      summary: Version
+      operationId: version_version_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionOut'
+  /api/auth/register:
+    post:
+      tags:
+      - auth
+      summary: Register
+      operationId: register_api_auth_register_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/login:
+    post:
+      tags:
+      - auth
+      summary: Login
+      operationId: login_api_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginIn'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/me:
+    get:
+      tags:
+      - auth
+      summary: Me
+      operationId: me_api_auth_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+      security:
+      - HTTPBearer: []
+  /api/companies:
+    get:
+      tags:
+      - companies
+      summary: List Companies
+      operationId: list_companies_api_companies_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/CompanyOut'
+                type: array
+                title: Response List Companies Api Companies Get
+      security:
+      - HTTPBearer: []
+    post:
+      tags:
+      - companies
+      summary: Create Company
+      operationId: create_company_api_companies_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/companies/{company_id}:
+    get:
+      tags:
+      - companies
+      summary: Get Company
+      operationId: get_company_api_companies__company_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: company_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Company Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings:
+    post:
+      tags:
+      - filings
+      summary: Create Filing
+      operationId: create_filing_api_filings_post
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FilingCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilingOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - filings
+      summary: List Filings
+      operationId: list_filings_api_filings_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: company_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Company Id
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FilingOut'
+                title: Response List Filings Api Filings Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}:
+    get:
+      tags:
+      - filings
+      summary: Get Filing
+      operationId: get_filing_api_filings__filing_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilingOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/deadline:
+    get:
+      tags:
+      - filings
+      summary: Get Deadline
+      operationId: get_deadline_api_filings__filing_id__deadline_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeadlineOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/trial-balance:
+    post:
+      tags:
+      - trial-balance
+      summary: Upload Trial Balance
+      operationId: upload_trial_balance_api_filings__filing_id__trial_balance_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_trial_balance_api_filings__filing_id__trial_balance_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrialBalanceOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - trial-balance
+      summary: Get Trial Balance
+      operationId: get_trial_balance_api_filings__filing_id__trial_balance_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrialBalanceOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/trial-balance/accounts/{account_id}:
+    patch:
+      tags:
+      - trial-balance
+      summary: Update Mapping
+      operationId: update_mapping_api_filings__filing_id__trial_balance_accounts__account_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      - name: account_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Account Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MappingUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TBAccountOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/trial-balance/suggest-mappings:
+    post:
+      tags:
+      - trial-balance
+      summary: Suggest Mappings
+      description: AI suggests categories for unmapped accounts — suggestions only; a human applies them.
+      operationId: suggest_mappings_api_filings__filing_id__trial_balance_suggest_mappings_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MappingSuggestion'
+                title: Response Suggest Mappings Api Filings  Filing Id  Trial Balance Suggest Mappings Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/statements/generate:
+    post:
+      tags:
+      - statements
+      summary: Generate
+      operationId: generate_api_filings__filing_id__statements_generate_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StatementOut'
+                title: Response Generate Api Filings  Filing Id  Statements Generate Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/statements/{kind}:
+    get:
+      tags:
+      - statements
+      summary: Get Statement
+      operationId: get_statement_api_filings__filing_id__statements__kind__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      - name: kind
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Kind
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatementOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/validate:
+    post:
+      tags:
+      - validation
+      summary: Validate
+      operationId: validate_api_filings__filing_id__validate_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationRunOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/validations/latest:
+    get:
+      tags:
+      - validation
+      summary: Latest
+      operationId: latest_api_filings__filing_id__validations_latest_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationRunOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/ratios:
+    get:
+      tags:
+      - validation
+      - statements
+      summary: Ratios
+      description: Financial ratios with their formulas — computed by domain code, never by the AI.
+      operationId: ratios_api_filings__filing_id__ratios_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RatioOut'
+                title: Response Ratios Api Filings  Filing Id  Ratios Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/anomalies:
+    get:
+      tags:
+      - validation
+      summary: Anomalies
+      operationId: anomalies_api_filings__filing_id__anomalies_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      - name: include_dismissed
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Dismissed
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AnomalyOut'
+                title: Response Anomalies Api Filings  Filing Id  Anomalies Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/anomalies/{anomaly_id}/explain:
+    post:
+      tags:
+      - ai
+      summary: Explain Anomaly
+      operationId: explain_anomaly_api_anomalies__anomaly_id__explain_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: anomaly_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Anomaly Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExplainOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/notes/draft:
+    post:
+      tags:
+      - ai
+      summary: Draft Note
+      operationId: draft_note_api_filings__filing_id__notes_draft_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteDraftIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/notes:
+    get:
+      tags:
+      - ai
+      summary: List Notes
+      operationId: list_notes_api_filings__filing_id__notes_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NoteOut'
+                title: Response List Notes Api Filings  Filing Id  Notes Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/notes/{note_id}:
+    patch:
+      tags:
+      - ai
+      summary: Finalize Note
+      operationId: finalize_note_api_notes__note_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: note_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Note Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoteUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/assistant/chat:
+    post:
+      tags:
+      - ai
+      summary: Chat
+      operationId: chat_api_filings__filing_id__assistant_chat_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/audit-memo:
+    post:
+      tags:
+      - ai
+      summary: Audit Memo
+      description: 'ReWOO audit memo: planner builds a tool plan, executor runs the read-only
+
+        tools, solver synthesizes the memo. Every figure comes from deterministic code.'
+      operationId: audit_memo_api_filings__filing_id__audit_memo_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditMemoOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/submit:
+    post:
+      tags:
+      - workflow
+      summary: Submit
+      operationId: submit_api_filings__filing_id__submit_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilingOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/review/transition:
+    post:
+      tags:
+      - workflow
+      summary: Review Transition
+      operationId: review_transition_api_filings__filing_id__review_transition_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilingOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/review/actions:
+    get:
+      tags:
+      - workflow
+      summary: Review Actions
+      operationId: review_actions_api_filings__filing_id__review_actions_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                title: Response Review Actions Api Filings  Filing Id  Review Actions Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/review/events:
+    get:
+      tags:
+      - workflow
+      summary: Review Events
+      operationId: review_events_api_filings__filing_id__review_events_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewEventOut'
+                title: Response Review Events Api Filings  Filing Id  Review Events Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/comments:
+    post:
+      tags:
+      - workflow
+      summary: Add Comment
+      operationId: add_comment_api_filings__filing_id__comments_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - workflow
+      summary: List Comments
+      operationId: list_comments_api_filings__filing_id__comments_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CommentOut'
+                title: Response List Comments Api Filings  Filing Id  Comments Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/comments/{comment_id}/resolve:
+    patch:
+      tags:
+      - workflow
+      summary: Resolve Comment
+      operationId: resolve_comment_api_filings__filing_id__comments__comment_id__resolve_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      - name: comment_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Comment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/checklist:
+    get:
+      tags:
+      - exports
+      summary: Checklist
+      operationId: checklist_api_filings__filing_id__checklist_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChecklistItem'
+                title: Response Checklist Api Filings  Filing Id  Checklist Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/exports/checklist.pdf:
+    get:
+      tags:
+      - exports
+      summary: Checklist Pdf
+      operationId: checklist_pdf_api_filings__filing_id__exports_checklist_pdf_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/filings/{filing_id}/exports/{filename}:
+    get:
+      tags:
+      - exports
+      summary: Export Statement
+      operationId: export_statement_api_filings__filing_id__exports__filename__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: filing_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Filing Id
+      - name: filename
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Filename
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    AnomalyOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        account_code:
+          type: string
+          title: Account Code
+        account_name:
+          type: string
+          title: Account Name
+        metric:
+          type: string
+          title: Metric
+        prior_value:
+          type: number
+          title: Prior Value
+        current_value:
+          type: number
+          title: Current Value
+        pct_change:
+          type: number
+          title: Pct Change
+        ai_explanation:
+          type: string
+          title: Ai Explanation
+        dismissed:
+          type: boolean
+          title: Dismissed
+      type: object
+      required:
+      - id
+      - account_code
+      - account_name
+      - metric
+      - prior_value
+      - current_value
+      - pct_change
+      - ai_explanation
+      - dismissed
+      title: AnomalyOut
+    AuditMemoOut:
+      properties:
+        memo:
+          type: string
+          title: Memo
+        plan:
+          items:
+            type: string
+          type: array
+          title: Plan
+        observations_count:
+          type: integer
+          title: Observations Count
+        provider:
+          type: string
+          title: Provider
+      type: object
+      required:
+      - memo
+      - plan
+      - observations_count
+      - provider
+      title: AuditMemoOut
+    Body_upload_trial_balance_api_filings__filing_id__trial_balance_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_trial_balance_api_filings__filing_id__trial_balance_post
+    ChatIn:
+      properties:
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - message
+      title: ChatIn
+    ChatOut:
+      properties:
+        reply:
+          type: string
+          title: Reply
+        provider:
+          type: string
+          title: Provider
+      type: object
+      required:
+      - reply
+      - provider
+      title: ChatOut
+    ChecklistItem:
+      properties:
+        item:
+          type: string
+          title: Item
+        done:
+          type: boolean
+          title: Done
+      type: object
+      required:
+      - item
+      - done
+      title: ChecklistItem
+    CommentCreate:
+      properties:
+        body:
+          type: string
+          title: Body
+        anchor:
+          type: string
+          title: Anchor
+          default: ''
+      type: object
+      required:
+      - body
+      title: CommentCreate
+    CommentOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        author_id:
+          type: integer
+          title: Author Id
+        anchor:
+          type: string
+          title: Anchor
+        body:
+          type: string
+          title: Body
+        resolved:
+          type: boolean
+          title: Resolved
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - author_id
+      - anchor
+      - body
+      - resolved
+      - created_at
+      title: CommentOut
+    CompanyCreate:
+      properties:
+        name:
+          type: string
+          title: Name
+        national_id:
+          type: string
+          title: National Id
+          default: ''
+        economic_code:
+          type: string
+          title: Economic Code
+          default: ''
+        fiscal_year_end_month:
+          type: integer
+          maximum: 12.0
+          minimum: 1.0
+          title: Fiscal Year End Month
+          default: 3
+      type: object
+      required:
+      - name
+      title: CompanyCreate
+    CompanyOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        national_id:
+          type: string
+          title: National Id
+        economic_code:
+          type: string
+          title: Economic Code
+        fiscal_year_end_month:
+          type: integer
+          title: Fiscal Year End Month
+        owner_id:
+          type: integer
+          title: Owner Id
+      type: object
+      required:
+      - id
+      - name
+      - national_id
+      - economic_code
+      - fiscal_year_end_month
+      - owner_id
+      title: CompanyOut
+    DeadlineOut:
+      properties:
+        fiscal_year:
+          type: integer
+          title: Fiscal Year
+        deadline:
+          type: string
+          title: Deadline
+        days_remaining:
+          type: integer
+          title: Days Remaining
+      type: object
+      required:
+      - fiscal_year
+      - deadline
+      - days_remaining
+      title: DeadlineOut
+    ExplainOut:
+      properties:
+        anomaly_id:
+          type: integer
+          title: Anomaly Id
+        explanation:
+          type: string
+          title: Explanation
+        provider:
+          type: string
+          title: Provider
+      type: object
+      required:
+      - anomaly_id
+      - explanation
+      - provider
+      title: ExplainOut
+    FilingCreate:
+      properties:
+        company_id:
+          type: integer
+          title: Company Id
+        fiscal_year:
+          type: integer
+          maximum: 2100.0
+          minimum: 2000.0
+          title: Fiscal Year
+      type: object
+      required:
+      - company_id
+      - fiscal_year
+      title: FilingCreate
+    FilingOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        company_id:
+          type: integer
+          title: Company Id
+        fiscal_year:
+          type: integer
+          title: Fiscal Year
+        status:
+          type: string
+          title: Status
+        deadline:
+          type: string
+          title: Deadline
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - company_id
+      - fiscal_year
+      - status
+      - deadline
+      - created_at
+      - updated_at
+      title: FilingOut
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthOut:
+      properties:
+        status:
+          type: string
+          title: Status
+          default: ok
+      type: object
+      title: HealthOut
+    LoginIn:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - email
+      - password
+      title: LoginIn
+    MappingSuggestion:
+      properties:
+        account_id:
+          type: integer
+          title: Account Id
+        code:
+          type: string
+          title: Code
+        name:
+          type: string
+          title: Name
+        suggested_category:
+          type: string
+          title: Suggested Category
+        reason:
+          type: string
+          title: Reason
+      type: object
+      required:
+      - account_id
+      - code
+      - name
+      - suggested_category
+      - reason
+      title: MappingSuggestion
+    MappingUpdate:
+      properties:
+        category:
+          type: string
+          title: Category
+      type: object
+      required:
+      - category
+      title: MappingUpdate
+    NoteDraftIn:
+      properties:
+        section:
+          type: string
+          title: Section
+      type: object
+      required:
+      - section
+      title: NoteDraftIn
+    NoteOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        section:
+          type: string
+          title: Section
+        draft_text:
+          type: string
+          title: Draft Text
+        final_text:
+          type: string
+          title: Final Text
+        ai_generated:
+          type: boolean
+          title: Ai Generated
+      type: object
+      required:
+      - id
+      - section
+      - draft_text
+      - final_text
+      - ai_generated
+      title: NoteOut
+    NoteUpdate:
+      properties:
+        final_text:
+          type: string
+          title: Final Text
+      type: object
+      required:
+      - final_text
+      title: NoteUpdate
+    RatioOut:
+      properties:
+        key:
+          type: string
+          title: Key
+        label:
+          type: string
+          title: Label
+        value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Value
+        unit:
+          type: string
+          title: Unit
+        formula:
+          type: string
+          title: Formula
+        interpretation:
+          type: string
+          title: Interpretation
+      type: object
+      required:
+      - key
+      - label
+      - value
+      - unit
+      - formula
+      - interpretation
+      title: RatioOut
+    ReviewEventOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        actor_id:
+          type: integer
+          title: Actor Id
+        from_status:
+          type: string
+          title: From Status
+        to_status:
+          type: string
+          title: To Status
+        comment:
+          type: string
+          title: Comment
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - actor_id
+      - from_status
+      - to_status
+      - comment
+      - created_at
+      title: ReviewEventOut
+    StatementOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        kind:
+          type: string
+          title: Kind
+        version:
+          type: integer
+          title: Version
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+      type: object
+      required:
+      - id
+      - kind
+      - version
+      - generated_at
+      - data
+      title: StatementOut
+    TBAccountOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        code:
+          type: string
+          title: Code
+        name:
+          type: string
+          title: Name
+        debit:
+          type: number
+          title: Debit
+        credit:
+          type: number
+          title: Credit
+        category:
+          type: string
+          title: Category
+        mapping_status:
+          type: string
+          title: Mapping Status
+      type: object
+      required:
+      - id
+      - code
+      - name
+      - debit
+      - credit
+      - category
+      - mapping_status
+      title: TBAccountOut
+    TokenOut:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          title: Token Type
+          default: bearer
+        user:
+          $ref: '#/components/schemas/UserOut'
+      type: object
+      required:
+      - access_token
+      - user
+      title: TokenOut
+    TransitionIn:
+      properties:
+        action:
+          type: string
+          title: Action
+        comment:
+          type: string
+          title: Comment
+          default: ''
+      type: object
+      required:
+      - action
+      title: TransitionIn
+    TrialBalanceOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        source_filename:
+          type: string
+          title: Source Filename
+        total_debit:
+          type: number
+          title: Total Debit
+        total_credit:
+          type: number
+          title: Total Credit
+        imported_at:
+          type: string
+          format: date-time
+          title: Imported At
+        accounts:
+          items:
+            $ref: '#/components/schemas/TBAccountOut'
+          type: array
+          title: Accounts
+          default: []
+      type: object
+      required:
+      - id
+      - source_filename
+      - total_debit
+      - total_credit
+      - imported_at
+      title: TrialBalanceOut
+    UserCreate:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+        password:
+          type: string
+          minLength: 8
+          title: Password
+        full_name:
+          type: string
+          title: Full Name
+          default: ''
+        role:
+          type: string
+          title: Role
+          default: preparer
+      type: object
+      required:
+      - email
+      - password
+      title: UserCreate
+    UserOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        email:
+          type: string
+          title: Email
+        full_name:
+          type: string
+          title: Full Name
+        role:
+          type: string
+          title: Role
+      type: object
+      required:
+      - id
+      - email
+      - full_name
+      - role
+      title: UserOut
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    ValidationResultOut:
+      properties:
+        rule_id:
+          type: string
+          title: Rule Id
+        severity:
+          type: string
+          title: Severity
+        passed:
+          type: boolean
+          title: Passed
+        message:
+          type: string
+          title: Message
+        context:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Context
+      type: object
+      required:
+      - rule_id
+      - severity
+      - passed
+      - message
+      title: ValidationResultOut
+    ValidationRunOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        run_at:
+          type: string
+          format: date-time
+          title: Run At
+        passed:
+          type: integer
+          title: Passed
+        failed:
+          type: integer
+          title: Failed
+        results:
+          items:
+            $ref: '#/components/schemas/ValidationResultOut'
+          type: array
+          title: Results
+          default: []
+      type: object
+      required:
+      - id
+      - run_at
+      - passed
+      - failed
+      title: ValidationRunOut
+    VersionOut:
+      properties:
+        app:
+          type: string
+          title: App
+        version:
+          type: string
+          title: Version
+        ai_provider:
+          type: string
+          title: Ai Provider
+      type: object
+      required:
+      - app
+      - version
+      - ai_provider
+      title: VersionOut
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
+servers:
+- url: http://localhost:8000
+  description: local (docker compose / uvicorn)
+- url: https://financial-statement-api.onrender.com
+  description: production (Render; placeholder until M7)

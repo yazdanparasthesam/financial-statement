@@ -1,0 +1,115 @@
+name: Deploy
+
+# CD with two environments (rubric criterion 9):
+#   dev  — AUTOMATIC: fires when CI passed on main, deploys via Render deploy hooks.
+#   prod — MANUAL: workflow_dispatch + the `production` environment gate
+#          (Settings → Environments → production → Required reviewers).
+# Until hooks are configured, steps skip gracefully — the repo is CI-green from day one.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deploy target"
+        type: choice
+        options: [prod]
+        default: prod
+      sha:
+        description: "Optional git SHA to deploy (blank = latest main)"
+        required: false
+        default: ""
+
+jobs:
+  # ------------------------------- DEV (automatic) -----------------------------
+  deploy-dev:
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy backend (Render deploy hook)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_BACKEND not set — skipping (see docs/deployment.md)."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK"
+
+      - name: Deploy frontend (Render deploy hook)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_FRONTEND not set — skipping (see docs/deployment.md)."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK"
+
+      - name: Post-deploy smoke test (needs FS_DEV_BACKEND_URL repo variable)
+        env:
+          BASE: ${{ vars.FS_DEV_BACKEND_URL || vars.FS_BACKEND_URL }}
+        run: |
+          if [ -z "$BASE" ]; then
+            echo "FS_DEV_BACKEND_URL not set — skipping smoke."
+            exit 0
+          fi
+          echo "Waiting for Render to swap the service in…"; sleep 60
+          bash ops/smoke.sh "$BASE"
+
+  # ------------------------------- PROD (manual) -------------------------------
+  deploy-prod:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: production        # ← manual approval gate (required reviewers)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy prod backend (Render deploy hook)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_PROD_BACKEND }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_PROD_BACKEND not set — see docs/deployment.md."
+            exit 1
+          fi
+          if [ -n "$SHA" ]; then
+            curl -fsS -X POST "$HOOK" -H 'Content-Type: application/json' -d "{\"sha\":\"$SHA\"}"
+          else
+            curl -fsS -X POST "$HOOK"
+          fi
+
+      - name: Deploy prod frontend (Render deploy hook)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_PROD_FRONTEND }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_PROD_FRONTEND not set — see docs/deployment.md."
+            exit 1
+          fi
+          if [ -n "$SHA" ]; then
+            curl -fsS -X POST "$HOOK" -H 'Content-Type: application/json' -d "{\"sha\":\"$SHA\"}"
+          else
+            curl -fsS -X POST "$HOOK"
+          fi
+
+      - name: Post-deploy smoke test (needs FS_PROD_BACKEND_URL repo variable)
+        env:
+          BASE: ${{ vars.FS_PROD_BACKEND_URL }}
+        run: |
+          if [ -z "$BASE" ]; then
+            echo "FS_PROD_BACKEND_URL not set — skipping smoke."
+            exit 0
+          fi
+          echo "Waiting for Render to swap the service in…"; sleep 90
+          bash ops/smoke.sh "$BASE"

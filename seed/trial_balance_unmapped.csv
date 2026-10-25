@@ -1,0 +1,23 @@
+code,name,debit,credit
+1101,Cash and Bank,180000,0
+1102,Accounts Receivable,85000,0
+1105,Inventory,60000,0
+1201,Equipment,200000,0
+1202,Accumulated Depreciation,0,45000
+2101,Accounts Payable,0,55000
+2102,Taxes Payable,0,15000
+2201,Long-term Bank Loan,0,90000
+3101,Share Capital,0,200000
+3201,Retained Earnings (prior years),0,60000
+4101,Sales Revenue,0,380000
+4102,Service Revenue,0,60000
+5101,Cost of Goods Sold,210000,0
+6101,Salaries Expense,90000,0
+6102,Rent Expense,36000,0
+6103,Utilities Expense,12000,0
+6104,Depreciation Expense,10000,0
+7101,Interest Income,0,4000
+8101,Interest Expense,6000,0
+8201,Corporate Tax Expense,20000,0
+9999,Mystery Consulting Fee,5000,0
+9998,Suspense Account,0,5000

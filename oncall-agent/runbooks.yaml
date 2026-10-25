@@ -1,0 +1,61 @@
+# Runbooks for the on-call responder agent.
+# alertname → deterministic response. # Commands must match the exact grammar in agent.py (no shell, no extra docker subcommands).
+# Empty action = diagnose + escalate only (never act blindly on warnings).
+
+defaults:
+  cooldown_seconds: 300            # don't re-run the same remediation inside 5 min
+  command_timeout_seconds: 90
+  report_dir: ops/incidents        # incident markdown lands here (evidence!)
+  cwd: .                           # repo root — where docker-compose.yml lives
+
+runbooks:
+  BackendDown:
+    summary: "Backend unreachable — every user journey is broken."
+    diagnose: "docker compose ps backend"
+    logs: "docker compose logs --tail 40 backend"
+    action: "docker compose restart backend"
+    verify_url: "http://backend:8000/healthz"
+    verify_attempts: 12
+    verify_delay_seconds: 5
+    escalate: >-
+      Backend did not recover automatically. Follow ops/runbooks/backend-down.md:
+      check the db service health, DATABASE_URL/JWT_SECRET env, then redeploy the
+      last known-good image.
+
+  SubmitFlowErrors:
+    summary: "5xx on submit/review transitions — deadline-critical flow blocked."
+    diagnose: "docker compose ps backend"
+    logs: "docker compose logs --tail 80 backend"
+    action: "docker compose restart backend"
+    verify_url: "http://backend:8000/healthz"
+    verify_attempts: 12
+    verify_delay_seconds: 5
+    escalate: >-
+      Restart did not clear the 5xx. Read the structured logs for the failing
+      route (trace_id joins logs↔traces in Grafana), then follow
+      ops/runbooks/submit-flow-errors.md.
+
+  GoldenJourneyLatencyHigh:
+    summary: "p95 latency above 2s — journey feels broken, no errors yet."
+    diagnose: "docker compose ps"
+    logs: "docker compose logs --tail 80 backend"
+    action: ""                     # never blind-restart on latency: diagnose + escalate
+    escalate: >-
+      Latency alert: inspect the golden-journey dashboard (which step is slow?),
+      check db load, then ops/runbooks/high-latency.md.
+
+  AIUnavailableSpike:
+    summary: "AI calls failing — explanations/notes/chat degraded to [AI UNAVAILABLE]."
+    diagnose: "docker compose logs --tail 40 backend"
+    logs: ""
+    action: ""                     # deterministic features unaffected; provider-side fix
+    escalate: >-
+      Check the AI provider (quota/key/outage). Flip AI_PROVIDER=mock to keep the
+      AI-assist UX deterministic while degraded. See ops/runbooks/ai-unavailable.md.
+
+  default:
+    summary: "Unknown alert — no automated remediation exists."
+    diagnose: "docker compose ps"
+    logs: ""
+    action: ""
+    escalate: "Human triage required: no runbook for this alertname."

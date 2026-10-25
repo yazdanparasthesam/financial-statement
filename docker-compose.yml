@@ -1,0 +1,166 @@
+# One-command full stack:  docker compose up --build
+#
+#   App         frontend :3000 (nginx, proxies /api) · backend :8000 · postgres :5433
+#   Observability  Grafana :3001 (admin/admin) · Prometheus :9090 · Alertmanager :9093
+#                  Tempo :3200 (traces) · Loki :3100 (logs) · OTel collector :4317/4318
+#
+# The observability half is opt-in per compose profile so the app itself still starts
+# with a single command on a small machine:
+#   docker compose up --build                              # app only
+#   docker compose --profile obs up --build                # app + full telemetry stack
+name: financial-statement
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fs
+      POSTGRES_PASSWORD: fs
+      POSTGRES_DB: financial_statement
+    ports:
+      - "5433:5432"          # host 5433 avoids clashes with a local Postgres
+    volumes:
+      - fs_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fs -d financial_statement"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://fs:fs@db:5432/financial_statement
+      JWT_SECRET: ${JWT_SECRET:-compose-dev-secret-change-me}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}       # mock | gemini
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      AI_MAX_CRITIQUE_LOOPS: ${AI_MAX_CRITIQUE_LOOPS:-2}
+      CORS_ORIGINS: "*"
+      # ---- telemetry (no-ops unless the collector is reachable; see docs/observability.md)
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}   # set true (or in .env) for the obs demo
+      OTEL_ENVIRONMENT: ${OTEL_ENVIRONMENT:-dev}
+      OTEL_SERVICE_NAME: financial-statement-backend
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+    ports:
+      - "8000:8000"          # /metrics is exposed here for Prometheus
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # ============================ observability (profile: obs) ====================
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.112.0
+    profiles: ["obs"]
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    depends_on:
+      - tempo
+      - loki
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    profiles: ["obs"]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ./observability/prometheus:/etc/prometheus:ro
+      - fs_promdata:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - backend
+
+  oncall-agent:
+    build: ./oncall-agent
+    profiles: ["obs"]
+    environment:
+      ONCALL_REPORT_DIR: /incident-reports
+    volumes:
+      - .:/workspace:ro                  # compose file + runbook working directory
+      - ./ops/incidents:/incident-reports:rw
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "127.0.0.1:8090:8090"           # local drill/simulate only; not public
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    profiles: ["obs"]
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - ./observability/alertmanager:/etc/alertmanager:ro
+      - fs_alertdata:/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
+    depends_on:
+      - prometheus
+      - oncall-agent
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    profiles: ["obs"]
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./observability/tempo:/etc/tempo:ro
+      - fs_tempodata:/var/tempo
+
+  loki:
+    image: grafana/loki:3.2.0
+    profiles: ["obs"]
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    volumes:
+      - ./observability/loki:/etc/loki:ro
+      - fs_lokidata:/loki
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    profiles: ["obs"]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"       # local demo only — see docs/observability.md
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
+      - fs_grafanadata:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000" # local only; frontend already owns 3000
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+volumes:
+  fs_pgdata:
+  fs_promdata:
+  fs_alertdata:
+  fs_tempodata:
+  fs_lokidata:
+  fs_grafanadata:

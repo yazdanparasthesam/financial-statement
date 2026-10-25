@@ -1,0 +1,4 @@
+# The on-call responder agent deliberately depends on NOTHING but PyYAML:
+# stdlib http.server + urllib keep the smallest possible attack surface
+# (it executes allow-listed shell commands — see security/agent-security.md).
+pyyaml>=6.0

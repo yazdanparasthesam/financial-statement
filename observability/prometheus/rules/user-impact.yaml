@@ -1,0 +1,54 @@
+# Alerts on USER IMPACT, not host vitals (no CPU/disk graphs here).
+# Every rule names the filing journey step that hurts when it fires.
+groups:
+  - name: user-impact
+    interval: 10s
+    rules:
+      - alert: BackendDown
+        expr: up{job="financial-statement-backend"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend unreachable — the whole app is down for users"
+          description: "Prometheus could not scrape financial-statement-backend for 30s."
+          impact: "Upload, generate, validate, review and export all fail."
+          runbook: "ops/runbooks/backend-down.md — the on-call agent applies it automatically."
+
+      - alert: SubmitFlowErrors
+        expr: >
+          sum(rate(http_requests_total{job="financial-statement-backend",
+            handler=~"/api/filings/.*/(submit|review/transition)", status="5xx"}[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "5xx errors on the submission/review flow"
+          description: "Users cannot submit filings or run review transitions."
+          impact: "Deadline-critical workflow blocked (Art.95 filings)."
+          runbook: "ops/runbooks/submit-flow-errors.md"
+
+      - alert: GoldenJourneyLatencyHigh
+        expr: >
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{
+              job="financial-statement-backend"}[5m]))) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 API latency above 2s for 5 minutes"
+          description: "The prepare→validate→submit journey feels broken to users."
+          impact: "Slow uploads/generation; users retry and pile up load."
+          runbook: "ops/runbooks/high-latency.md"
+
+      - alert: AIUnavailableSpike
+        expr: sum(rate(fs_ai_requests_total{status="error"}[10m])) > 0.02
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI calls failing — explanations/notes/chat degraded"
+          description: "fs_ai_requests_total{status=error} rate sustained above 0.02/s."
+          impact: "Deterministic features unaffected; AI assist returns [AI UNAVAILABLE]."
+          runbook: "ops/runbooks/ai-unavailable.md — consider AI_PROVIDER=mock."

@@ -1,0 +1,20 @@
+{
+  "version": "4",
+  "status": "firing",
+  "receiver": "oncall-agent",
+  "groupLabels": {"alertname": "BackendDown"},
+  "alerts": [
+    {
+      "status": "firing",
+      "fingerprint": "drill0001",
+      "labels": {"alertname": "BackendDown", "severity": "critical"},
+      "annotations": {
+        "summary": "Backend unreachable — the whole app is down for users",
+        "description": "DRILL: synthetic Alertmanager payload (ops/alert-drill.sh --simulate).",
+        "impact": "Upload, generate, validate, review and export all fail.",
+        "runbook": "ops/runbooks/backend-down.md"
+      },
+      "startsAt": "2026-10-18T06:00:00Z"
+    }
+  ]
+}

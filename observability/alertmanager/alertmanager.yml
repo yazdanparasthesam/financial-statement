@@ -1,0 +1,13 @@
+# Alertmanager routes user-impact alerts to the responder service on the obs network.
+route:
+  receiver: oncall-agent
+  group_by: ["alertname"]
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 1h
+
+receivers:
+  - name: oncall-agent
+    webhook_configs:
+      - url: http://oncall-agent:8090/alerts
+        send_resolved: true

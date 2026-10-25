@@ -1,0 +1,15 @@
+# Ruff config — the lint gate in CI (`ruff check backend`).
+line-length = 120
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "RUF", "PIE", "BLE", "FURB"]
+# Formula strings are user-facing (frontend + PDF): keep proper math typography.
+allowed-confusables = ["−", "×", "÷"]
+
+[lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom uses calls in default arguments by design.
+extend-immutable-calls = [
+    "fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body",
+    "fastapi.File", "fastapi.Header", "fastapi.security.HTTPBearer",
+]

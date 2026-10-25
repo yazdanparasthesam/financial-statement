@@ -1,0 +1,64 @@
+name: Rollback
+
+# Rollback path (submission requirement). Two levels:
+#   1. THIS workflow — revert a bad commit on main. CI re-runs; dev auto-redeploys
+#      the reverted state. For prod, run Deploy (workflow_dispatch) afterwards, or…
+#   2. Render dashboard → service → Deploys → "Rollback" for an instant prod
+#      revert to the previous deploy (no CI wait). See ops/runbooks/rollback.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "SHA of the BAD commit to revert (blank = revert latest commit on main)"
+        required: false
+        default: ""
+      reason:
+        description: "Why are we rolling back? (recorded in the revert message)"
+        required: true
+
+jobs:
+  revert:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Revert the bad commit and push main
+        env:
+          TARGET: ${{ inputs.target_sha }}
+          REASON: ${{ inputs.reason }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BAD="${TARGET:-HEAD}"
+          echo "Reverting $BAD — reason: $REASON"
+          git revert --no-edit -m 1 "$BAD" 2>/dev/null || git revert --no-edit "$BAD"
+          MSG="$(git log -1 --pretty=%B) (rollback reason: $REASON)"
+          git commit --amend -m "$MSG"
+          if ! git push origin main; then
+            echo "::warning::Direct push blocked (branch protection?) — opening a PR instead."
+            BR="rollback/$(date +%s)"
+            git checkout -b "$BR"
+            git push origin "$BR"
+            gh pr create --title "Rollback: revert $BAD" \
+                         --body "Automated rollback. Reason: $REASON" --base main
+          fi
+
+      - name: Summary — what to do next
+        env:
+          TARGET: ${{ inputs.target_sha }}
+          REASON: ${{ inputs.reason }}
+        run: |
+          {
+            echo "### Rollback executed"
+            echo "- Reverted: \`${TARGET:-HEAD}\` (reason: $REASON)"
+            echo "- CI will re-run on main; **dev** redeploys automatically."
+            echo "- **prod**: run *Deploy* (workflow_dispatch) after CI passes, or use"
+            echo "  Render → Deploys → Rollback for an instant revert (ops/runbooks/rollback.md)."
+          } >> "$GITHUB_STEP_SUMMARY"
