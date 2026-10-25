@@ -2,7 +2,7 @@
 title: "On-call responder agent: wakes on alert, fixes, reports"
 labels: [oncall,agent]
 milestone: "M7 — Ship"
-state: closed
+state: open
 agent: "Arena Agent"
 ---
 

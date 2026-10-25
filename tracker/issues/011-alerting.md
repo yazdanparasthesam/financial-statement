@@ -2,7 +2,7 @@
 title: "User-impact alerts: 4 rules + Alertmanager → responder webhook"
 labels: [observability,alerting]
 milestone: "M7 — Ship"
-state: closed
+state: open
 agent: "Arena Agent"
 ---
 

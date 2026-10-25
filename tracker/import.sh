@@ -30,7 +30,7 @@ PY
   fi
   command -v gh >/dev/null || { echo "gh CLI required: https://cli.github.com"; exit 1; }
   ISSUES=$(gh issue list --state all --limit 1000 --json number,title,state)
-  FOUND=$(printf '%s' "$ISSUES" | python3 -c 'import json,sys; title=sys.argv[1]; issues=json.load(sys.stdin); matches=[x for x in issues if x["title"] == title]; print(f"{matches[0]["number"]}\t{matches[0]["state"]}" if matches else "")' "$TITLE")
+  FOUND=$(printf '%s' "$ISSUES" | python3 -c 'import json,sys; title=sys.argv[1]; issues=json.load(sys.stdin); matches=[x for x in issues if x["title"] == title]; print("{}\t{}".format(matches[0]["number"], matches[0]["state"]) if matches else "")' "$TITLE")
   if [ -n "$FOUND" ]; then
     IFS=$'\t' read -r NUM REMAINDER <<< "$FOUND"
     if [ "$SYNC" = "1" ] && [ "$STATE" = "closed" ] && [ "$REMAINDER" = "OPEN" ]; then

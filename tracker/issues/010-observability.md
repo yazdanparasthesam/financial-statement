@@ -2,7 +2,7 @@
 title: "Observability: metrics + traces + structured logs sharing one trace id"
 labels: [observability]
 milestone: "M7 — Ship"
-state: closed
+state: open
 agent: "Arena Agent"
 ---
 
