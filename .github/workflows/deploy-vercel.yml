@@ -1,0 +1,77 @@
+# Deploy the dev Vercel frontend only after the CI-gated API Deploy workflow succeeds.
+# The Vercel project stays disconnected from Git so no provider-side auto-deploy can
+# bypass CI. This workflow checks out the exact source SHA used by the API deployment.
+name: Deploy Vercel Web
+
+on:
+  workflow_run:
+    workflows: ["Deploy"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-web-dev:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'workflow_run' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: vercel-dev-web
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Check out the exact source SHA from the successful API deploy
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Install pinned Vercel CLI
+        run: npm install --global vercel@65.3.1
+
+      - name: Pull project settings and Production environment
+        run: |
+          set -euo pipefail
+          test -n "$VERCEL_ORG_ID" || { echo "VERCEL_ORG_ID is missing" >&2; exit 1; }
+          test -n "$VERCEL_PROJECT_ID" || { echo "VERCEL_PROJECT_ID is missing" >&2; exit 1; }
+          test -n "$VERCEL_TOKEN" || { echo "VERCEL_TOKEN is missing" >&2; exit 1; }
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build the Vite frontend with Vercel project settings
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt frontend to the dev project's Production target
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+      - name: Verify the public dev frontend
+        env:
+          BASE: https://fs-dev-web.vercel.app
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            if curl --fail --silent --show-error "$BASE" -o "$RUNNER_TEMP/fs-dev-web.html" &&
+               grep -q '<div id="root"></div>' "$RUNNER_TEMP/fs-dev-web.html" &&
+               curl --fail --silent --show-error "$BASE/login" -o "$RUNNER_TEMP/fs-dev-web-login.html" &&
+               grep -q '<div id="root"></div>' "$RUNNER_TEMP/fs-dev-web-login.html"; then
+              echo "Frontend root and SPA deep-link are responding at $BASE"
+              exit 0
+            fi
+            if [ "$attempt" -eq 18 ]; then
+              echo "Frontend root or SPA deep-link health check failed at $BASE" >&2
+              exit 1
+            fi
+            sleep 10
+          done
