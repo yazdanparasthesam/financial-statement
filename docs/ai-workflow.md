@@ -36,7 +36,7 @@ agent: document episode (what broke, why, fix) in IMPLEMENTATION_SUMMARY.md
 Every batch passed through these gates **before** being handed over:
 
 - `ruff check` clean (committed `ruff.toml`; FastAPI `Depends` idiom whitelisted explicitly);
-- backend `pytest`: 74 tests — unit (pure domain + AI providers/graphs) + integration (API+DB)
+- backend `pytest`: 79 tests — unit (pure domain + AI providers/graphs) + integration (API+DB)
   + contract drift;
 - frontend `vitest`: 27 tests on the api client + pure libs; `tsc --noEmit` + production build;
 - seed-data arithmetic hand-checked (trial balances balance; anomaly percentages recomputed);
@@ -81,14 +81,15 @@ extension pack's permission model.
 
 - **M0–M2 (this commit):** full-stack core built and verified as above.
 - **M4:** live Gemini verification (one real call per AI kind, logged) — pending.
-- **M7:** deployment episode (Render/Neon, cold-start handling) — pending.
+- **M7:** Neon Postgres branch + app API smoke passed; public Render dev/prod deployment and cold-start verification remain pending.
 - **M2.5 (formula engine + LangChain/LangGraph agents):** cash-flow statement (indirect
   method) + rules R007/R008 + 10 ratios with formula strings; AI layer rebuilt on
   LangChain/LangGraph — self-criticism notes loop, ReAct assistant, ReWOO audit memo
-  (new endpoint); backend 74 tests, frontend 27, live smoke 28/28.
+  (new endpoint); final local verification: backend 79, frontend 27, live smoke 28/28.
 - **M8:** agent-pack demo transcripts (MCP session, hook guard blocking a dangerous command,
   validation-auditor run) — pending.
-- **M11–M12 (prepared, owner verification pending):** Prometheus/OTel/Grafana/Loki/Tempo
+- **M11–M12 (local/hosted evidence verified; public deployment pending):** Prometheus/OTel/Grafana/Loki/Tempo
   configs, privacy-redacted traces, user-impact alerts, in-Compose responder, alert drill,
-  public issue importer, dev/prod CD and rollback workflow. App-only local smoke is green;
-  this sandbox has no Docker daemon, public GitHub repo, or Render/Neon credentials.
+  public issue importer, dev/prod CD and rollback workflow. Owner-side local Compose, telemetry,
+  alert/remediation, and hosted CI evidence are verified; public Render deployment and live CD
+  remain pending. The sandbox itself has no Docker daemon or deployment credentials.

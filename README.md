@@ -46,7 +46,7 @@ computed by code, never by a model.
         Browser — React 18 + Vite + TypeScript + Tailwind + TanStack Query
         └── src/api/client.ts   ← ALL backend traffic (centralized, typed)
                         │  REST/JSON — contract: openapi.yaml (CI fails on drift)
-        FastAPI backend (Python 3.12)
+        FastAPI backend (Python 3.10+)
         ├── routers/    thin HTTP layer (auth, filings, TB, statements, validation, AI, workflow, exports)
         ├── services/   orchestration + AI call logging + audit trail
         ├── domain/     PURE logic: mapping · generator · cashflow · ratios · validators · workflow · deadlines
@@ -180,6 +180,8 @@ Without any API key the AI runs in deterministic **mock mode** (`AI_PROVIDER=moc
 ├── backend/             FastAPI (app/{routers,services,domain,infra}, tests/{unit,integration})
 ├── openapi.yaml         THE API contract — regenerated via `make openapi`, drift fails CI
 ├── docker-compose.yml   db + backend + frontend, one command
+├── neon.ts + .vscode/mcp.json  Neon branch policy + CLI/MCP endpoint configuration
+├── package.json         root build/test scripts and Neon CLI dependencies
 ├── product-spec.md      personas, journeys, functional spec, rule table, glossary
 ├── AGENTS.md            instructions for coding agents working on this repo
 ├── seed/                demo trial balances (clean, prior-year, unbalanced, unmapped)
@@ -193,6 +195,7 @@ Without any API key the AI runs in deterministic **mock mode** (`AI_PROVIDER=moc
 ├── tracker/             GitHub-Issues source of truth (14 prepared issues) · import.sh
 ├── evidence/            submission evidence index + success-only screenshot slots
 ├── ops/                 smoke.sh · alert-drill.sh · diagnostics.sh · runbooks/ · incidents/
+│                        troubleshooting/ (separate issue logs)
 ├── agent-capabilities/  reusable workflows + prompt library
 ├── agent-hooks/         guardrails (tool-use guard, pre-commit secret scan)
 ├── mcp-server/          read-only MCP server exposing filing tools to coding agents
@@ -233,7 +236,8 @@ committed under `security/runs/`. Read: [security/audit-brief.md](security/audit
 ## Evidence & submission runbook
 
 Owner-side screenshots are indexed in [evidence/README.md](evidence/README.md) (successful
-frames only). The complete step-by-step path—public repo/issues, Docker verification,
+frames only). Local extraction (Docker Compose v2.27.0), app-only Compose startup, backend health, frontend login, the **28/28 live HTTP smoke test**, and the temporary Neon-branch FastAPI/database journey are verified; see [evidence/README.md](evidence/README.md).
+The complete step-by-step path—public repo/issues, Docker verification,
 observability/alert drill, Render dev/prod, CI/CD, evidence, and mandatory peer reviews—is
 in [docs/course-submission-runbook.md](docs/course-submission-runbook.md).
 
@@ -255,7 +259,7 @@ Official final-project criteria → where each one is satisfied:
 | # | Criterion | Where to look |
 |---|---|---|
 | 1 | Problem & functionality described | README §The problem / §What the system does + [product-spec.md](product-spec.md) |
-| 2 | Spec + public task tracker with acceptance criteria | [product-spec.md](product-spec.md) · GitHub Issues (prepared under [tracker/](tracker/); publish/import and attach issue URLs before claiming top band) |
+| 2 | Spec + public task tracker with acceptance criteria and agent evidence | [product-spec.md](product-spec.md) · [tracker definitions](tracker/) · [public GitHub Issues](https://github.com/yazdanparasthesam/financial-statement/issues) (14 issues; #1–#8/#14 closed, #9–#13 open; reconcile #10–#12 local/public status) |
 | 3 | Agent team & how it works together | [docs/agent-team.md](docs/agent-team.md) (roster, process diagram, handoff contracts) |
 | 4 | AGENTS.md → modular docs | [AGENTS.md](AGENTS.md) + `docs/*` (architecture, ai-workflow, testing, deployment, operations, observability, permissions) |
 | 5 | Full-stack E2E, one-command local run | README §Quickstart (`docker compose up --build`) + §The demo story |

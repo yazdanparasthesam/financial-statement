@@ -2,7 +2,7 @@
 title: "User-impact alerts: 4 rules + Alertmanager → responder webhook"
 labels: [observability,alerting]
 milestone: "M7 — Ship"
-state: open
+state: closed
 agent: "Arena Agent"
 ---
 
@@ -18,3 +18,8 @@ Rubric criterion 11: at least one alert on user impact, wired to a responder.
 ## Agent evidence log
 - **Arena Agent** — wrote rules from the ACTUAL metric labels verified live (status="5xx" grouping).
 - Verified: promtool-style YAML validation + drill script.
+
+
+## Verified completion (2026-10-26)
+- BackendDown fired after the intentional backend stop; Alertmanager delivered it to the responder; cleared after recovery.
+- Evidence: `docs/course-submission-runbook.md` Step 6 and `evidence/06-prometheus-target-recovered.png`, `evidence/06-alertmanager-cleared.png`.

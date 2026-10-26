@@ -1,5 +1,5 @@
 """SQLAlchemy models — one table per concept in docs/architecture.md §Data model."""
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -8,7 +8,7 @@ from .db import Base
 
 
 def utcnow() -> datetime:
-    return datetime.now(UTC)
+    return datetime.now(timezone.utc)  # noqa: UP017 - preserve Python 3.10 compatibility
 
 
 class User(Base):

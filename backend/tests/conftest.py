@@ -11,7 +11,7 @@ from uuid import uuid4
 _tmp = pathlib.Path(tempfile.mkdtemp(prefix="fs-tests-"))
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp / 'test.db'}"
 os.environ["AI_PROVIDER"] = "mock"
-os.environ["JWT_SECRET"] = "test-secret-not-for-prod"
+os.environ["JWT_SECRET"] = "test-secret-not-for-prod-use-32-byte-minimum-key"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

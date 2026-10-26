@@ -2,7 +2,7 @@
 title: "On-call responder agent: wakes on alert, fixes, reports"
 labels: [oncall,agent]
 milestone: "M7 — Ship"
-state: open
+state: closed
 agent: "Arena Agent"
 ---
 
@@ -20,3 +20,8 @@ Rubric criterion 12: an on-call agent wakes on an alert and fixes the issue.
 ## Agent evidence log
 - **Arena Agent** — implemented + verified live in sandbox: webhook POST → remediated incident report; real-runbook one-shot escalated gracefully where docker absent.
 - Verified: `pytest oncall-agent/tests -q` (10), drill simulate transcript.
+
+
+## Verified completion (2026-10-26)
+- Responder ran the allow-listed `docker compose restart backend`, verified `/healthz`, wrote a remediated incident report; Prometheus target returned UP.
+- Evidence: `docs/course-submission-runbook.md` Step 6 and `evidence/06-prometheus-target-recovered.png`, `evidence/06-alertmanager-cleared.png`.

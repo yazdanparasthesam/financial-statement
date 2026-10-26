@@ -7,9 +7,14 @@ free-tier durability: Render's own free Postgres expires after 90 days; Neon's f
 
 ## 1. Database — Neon
 
-1. neon.tech → create project `financial-statement` (AWS eu-central-1 or us-east-1).
-2. Copy the pooled connection string → `postgresql+psycopg://USER:PASS@HOST/dbname?sslmode=require`
-   (keep `+psycopg`; keep `sslmode=require`).
+Neon is the managed database provider. The AWS region is only where Neon runs the database; create and manage it in Neon Console. **No AWS account or AWS console setup is required.**
+
+1. neon.tech → create or select project `financial-statement` (AWS eu-central-1 or us-east-1).
+2. Authenticate the Neon CLI with `neon login` (or `npx --yes neon@latest login` when the CLI is not installed globally) and complete the browser authorization.
+3. In the project root, link/configure the intended project branch with `neon init`; review the proposed changes using `neon config plan`, then use `neon deploy` to apply `neon.ts` and pull branch environment variables. The verified `production` plan had no changes and listed Postgres as the utilized service.
+The generated `neon.ts` keeps Neon Auth disabled (the app already has JWT auth) and applies a seven-day TTL only to newly created non-default branches; production remains unchanged. Postgres is the only utilized service. The root npm manifest retains `@neon/config` and `@neon/env` and provides a root `npm run build` that builds the frontend.
+
+The application uses SQLAlchemy 2 + psycopg 3 (`psycopg[binary]`). Keep this existing driver. Use the pooled app connection string as `DATABASE_URL`; use the direct `DATABASE_URL_UNPOOLED` only for migrations/admin tasks that need it. The backend loads `.env` / `.env.local` from the repository root (as well as the legacy `backend/.env`) and normalizes generic `postgresql://` or `postgres://` URLs to SQLAlchemy's `postgresql+psycopg://` form while preserving query options such as `sslmode=require`.
 
 ## 2. Backend — Render web service
 
@@ -80,6 +85,8 @@ prod rollback use Render → Deploys → **Rollback** (no CI wait). Details:
 | `FS_PROD_BACKEND_URL` | variable | prod backend public URL |
 
 ## 5. Verification (evidence for criterion 8)
+
+For a live Neon backend check, first `neon checkout neon-smoke` (the configured seven-day test branch), then run `backend/.venv/bin/python ops/neon-e2e-smoke.py` from the repository root. The script reads the ignored branch dotenv locally, normalizes the pooled URL for psycopg 3, starts the FastAPI app in-process, tests `/healthz` and register/login/me, and removes its temporary user/audit row. It prints only status codes, never configuration values. Do not run it against production.
 
 ```bash
 curl -i https://<backend>.onrender.com/healthz        # 200 {"status":"ok"}

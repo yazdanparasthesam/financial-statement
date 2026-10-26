@@ -1,8 +1,20 @@
 """Application settings. Everything environment-driven so the same code runs
 on SQLite (dev/test) and Postgres (compose/prod), with Gemini or Mock AI."""
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
+_PROJECT_DIR = _BACKEND_DIR.parent if _BACKEND_DIR.name == "backend" else _BACKEND_DIR
+# Neon CLI writes into the repository-root .env (or .env.local); local backend
+# development has historically used backend/.env. Later files override earlier
+# dotenv values, while real process environment variables retain highest priority.
+_ENV_FILES = tuple(dict.fromkeys((
+    _BACKEND_DIR / ".env",
+    _PROJECT_DIR / ".env",
+    _PROJECT_DIR / ".env.local",
+)))
 
 
 class Settings(BaseSettings):
@@ -21,7 +33,7 @@ class Settings(BaseSettings):
     filing_deadline_months: int = 4
     cors_origins: str = "*"
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_ENV_FILES, extra="ignore")
 
 
 @lru_cache

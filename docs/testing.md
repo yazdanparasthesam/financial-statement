@@ -65,4 +65,4 @@ via a StrictCritic double, ReWOO plan filtering + gate wording, ReAct mock invoc
 
 `python -m pytest oncall-agent/tests -q` runs 10 offline engine tests (exact command grammar,
 webhook parsing, cooldown, verify/escalate paths, incident reports). CI runs them in the
-`oncall-agent` job; `make test` runs both backend and responder suites (74 backend tests + 10 responder tests).
+`oncall-agent` job; `make test` runs both backend and responder suites (79 backend tests + 10 responder tests).

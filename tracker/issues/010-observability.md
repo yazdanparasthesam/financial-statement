@@ -2,7 +2,7 @@
 title: "Observability: metrics + traces + structured logs sharing one trace id"
 labels: [observability]
 milestone: "M7 — Ship"
-state: open
+state: closed
 agent: "Arena Agent"
 ---
 
@@ -21,3 +21,10 @@ Rubric criterion 10: golden journey instrumented; signals stored and viewable in
 - **Arena Agent** — full implementation + live verification (journey run against :8793, metrics deltas checked, 10 JSON log lines captured).
 - Defects found & fixed in-session: missing status label (used `http_requests_total` grouped 5xx), non-JSON uvicorn lines.
 - Verified: `pytest tests/unit/test_telemetry.py` (10), `curl :8000/metrics | grep fs_`.
+
+
+## Verified completion (2026-10-26)
+- Compose obs profile: Prometheus backend target UP; Grafana dashboard populated metrics.
+- Loki returned 142 structured backend request logs with trace IDs.
+- Grafana TraceID derived link opened a matching Tempo trace with spans.
+- Evidence: `evidence/04-grafana-golden-journey.png`, `evidence/05-loki-json-trace-ids.png`, `evidence/05-trace-log-correlation.png`.

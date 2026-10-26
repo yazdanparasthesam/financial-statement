@@ -250,3 +250,9 @@ backend/financial-statement.db*
 Thumbs.db
 .idea/
 .vscode/
+
+# Financial Statement project-specific ignore rules
+.vscode/*
+!.vscode/mcp.json
+# Neon linked-project metadata (local branch selection)
+.neon

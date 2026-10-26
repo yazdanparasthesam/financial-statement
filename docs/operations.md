@@ -69,3 +69,8 @@ Full guide: `docs/observability.md`.
 Runbooks: `ops/runbooks/deploy.md` · `rollback.md` · `backup.md` · `backend-down.md` ·
 `submit-flow-errors.md` · `high-latency.md` · `ai-unavailable.md` (the last four are
 executed automatically — in allow-listed form — by `oncall-agent/`).
+
+
+## Troubleshooting history
+
+- [Episode 001 — Docker Buildx permission denied](../ops/troubleshooting/001-buildkit-permission-denied.md): initial build access error, successful sudo retry, and follow-up checks.

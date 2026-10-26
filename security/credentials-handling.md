@@ -21,3 +21,5 @@ rotated). Rules for this project:
 5. **If something leaks:** revoke at the source first, then rotate, then note the incident
    in `security/audit-brief.md` findings log. Order matters: rotate-before-revoke leaves a
    window.
+
+For GitHub CLI authentication and least-privilege guidance, see [security-audit/credentials-handling.md](../security-audit/credentials-handling.md).
