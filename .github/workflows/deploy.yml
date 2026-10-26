@@ -48,7 +48,6 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Deploy API to FastAPI Cloud
-        working-directory: backend
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
           FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
@@ -128,7 +127,6 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Deploy API to the production FastAPI Cloud app
-        working-directory: backend
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_PROD_TOKEN }}
           FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_PROD_APP_ID }}
