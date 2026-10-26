@@ -1,10 +1,8 @@
+# CI-gated FastAPI Cloud deployment for the API. The Vercel frontend job will be
+# added after the Vercel dev project and its CI-only deployment credentials exist.
+# Native FastAPI Cloud GitHub deployment is intentionally disabled; this workflow
+# deploys only the exact commit whose CI run succeeded.
 name: Deploy
-
-# CD with two environments (rubric criterion 9):
-#   dev  — AUTOMATIC: fires when CI passed on main, deploys via Render deploy hooks.
-#   prod — MANUAL: workflow_dispatch + the `production` environment gate
-#          (Settings → Environments → production → Required reviewers).
-# Until hooks are configured, steps skip gracefully — the repo is CI-green from day one.
 
 on:
   workflow_run:
@@ -18,98 +16,142 @@ on:
         options: [prod]
         default: prod
       sha:
-        description: "Optional git SHA to deploy (blank = latest main)"
+        description: "Full commit SHA to deploy (blank = this workflow's commit)"
         required: false
         default: ""
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
-  # ------------------------------- DEV (automatic) -----------------------------
+  # ------------------------------- DEV (after green CI) ------------------------
   deploy-dev:
     if: >
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main'
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: dev
+    concurrency:
+      group: fastapi-cloud-dev
+      cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out the exact commit CI tested
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Deploy backend (Render deploy hook)
-        env:
-          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
-        run: |
-          if [ -z "$HOOK" ]; then
-            echo "RENDER_DEPLOY_HOOK_BACKEND not set — skipping (see docs/deployment.md)."
-            exit 0
-          fi
-          curl -fsS -X POST "$HOOK"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
-      - name: Deploy frontend (Render deploy hook)
+      - name: Deploy API to FastAPI Cloud
+        working-directory: backend
         env:
-          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
+          FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
+          FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
         run: |
-          if [ -z "$HOOK" ]; then
-            echo "RENDER_DEPLOY_HOOK_FRONTEND not set — skipping (see docs/deployment.md)."
-            exit 0
-          fi
-          curl -fsS -X POST "$HOOK"
+          set -euo pipefail
+          test -n "$FASTAPI_CLOUD_TOKEN" || { echo "FASTAPI_CLOUD_TOKEN is missing" >&2; exit 1; }
+          test -n "$FASTAPI_CLOUD_APP_ID" || { echo "FASTAPI_CLOUD_APP_ID is missing" >&2; exit 1; }
+          uvx --from "fastapi[standard]" fastapi deploy --app-id "$FASTAPI_CLOUD_APP_ID"
 
-      - name: Post-deploy smoke test (needs FS_DEV_BACKEND_URL repo variable)
+      - name: Wait for API health and run lifecycle smoke
         env:
-          BASE: ${{ vars.FS_DEV_BACKEND_URL || vars.FS_BACKEND_URL }}
+          BASE: ${{ vars.FS_DEV_BACKEND_URL || 'https://fs-dev-api.fastapicloud.dev' }}
         run: |
-          if [ -z "$BASE" ]; then
-            echo "FS_DEV_BACKEND_URL not set — skipping smoke."
-            exit 0
-          fi
-          echo "Waiting for Render to swap the service in…"; sleep 60
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            if curl --fail --silent --show-error "$BASE/healthz"; then
+              echo
+              break
+            fi
+            if [ "$attempt" -eq 18 ]; then
+              echo "API health check failed at $BASE/healthz" >&2
+              exit 1
+            fi
+            sleep 10
+          done
           bash ops/smoke.sh "$BASE"
 
-  # ------------------------------- PROD (manual) -------------------------------
+  # ------------------------------- PROD (manual + environment approval) --------
   deploy-prod:
-    if: github.event_name == 'workflow_dispatch'
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      inputs.environment == 'prod' &&
+      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: production        # ← manual approval gate (required reviewers)
+    timeout-minutes: 30
+    environment: production
+    concurrency:
+      group: fastapi-cloud-production
+      cancel-in-progress: false
+    env:
+      DEPLOY_SHA: ${{ inputs.sha || github.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out the requested production commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 0
 
-      - name: Deploy prod backend (Render deploy hook)
-        env:
-          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_PROD_BACKEND }}
-          SHA: ${{ inputs.sha }}
+      - name: Require the selected SHA to be on main
         run: |
-          if [ -z "$HOOK" ]; then
-            echo "RENDER_DEPLOY_HOOK_PROD_BACKEND not set — see docs/deployment.md."
+          set -euo pipefail
+          git fetch origin main
+          git merge-base --is-ancestor "$DEPLOY_SHA" origin/main || {
+            echo "The production SHA must already be reachable from main." >&2
+            exit 1
+          }
+
+      - name: Verify the selected commit has a successful CI run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Provide a full 40-character commit SHA." >&2
             exit 1
           fi
-          if [ -n "$SHA" ]; then
-            curl -fsS -X POST "$HOOK" -H 'Content-Type: application/json' -d "{\"sha\":\"$SHA\"}"
-          else
-            curl -fsS -X POST "$HOOK"
-          fi
+          gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${DEPLOY_SHA}&per_page=100" \
+            > "$RUNNER_TEMP/ci-runs.json"
+          jq -e --arg sha "$DEPLOY_SHA" \
+            'any(.workflow_runs[]; .head_sha == $sha and .conclusion == "success")' \
+            "$RUNNER_TEMP/ci-runs.json" >/dev/null || {
+              echo "No successful CI run found for $DEPLOY_SHA" >&2
+              exit 1
+            }
 
-      - name: Deploy prod frontend (Render deploy hook)
-        env:
-          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_PROD_FRONTEND }}
-          SHA: ${{ inputs.sha }}
-        run: |
-          if [ -z "$HOOK" ]; then
-            echo "RENDER_DEPLOY_HOOK_PROD_FRONTEND not set — see docs/deployment.md."
-            exit 1
-          fi
-          if [ -n "$SHA" ]; then
-            curl -fsS -X POST "$HOOK" -H 'Content-Type: application/json' -d "{\"sha\":\"$SHA\"}"
-          else
-            curl -fsS -X POST "$HOOK"
-          fi
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
-      - name: Post-deploy smoke test (needs FS_PROD_BACKEND_URL repo variable)
+      - name: Deploy API to the production FastAPI Cloud app
+        working-directory: backend
         env:
-          BASE: ${{ vars.FS_PROD_BACKEND_URL }}
+          FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_PROD_TOKEN }}
+          FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_PROD_APP_ID }}
         run: |
-          if [ -z "$BASE" ]; then
-            echo "FS_PROD_BACKEND_URL not set — skipping smoke."
-            exit 0
-          fi
-          echo "Waiting for Render to swap the service in…"; sleep 90
+          set -euo pipefail
+          test -n "$FASTAPI_CLOUD_TOKEN" || { echo "Set FASTAPI_CLOUD_PROD_TOKEN in the protected production environment" >&2; exit 1; }
+          test -n "$FASTAPI_CLOUD_APP_ID" || { echo "Set FASTAPI_CLOUD_PROD_APP_ID in the protected production environment" >&2; exit 1; }
+          uvx --from "fastapi[standard]" fastapi deploy --app-id "$FASTAPI_CLOUD_APP_ID"
+
+      - name: Wait for production API health and run lifecycle smoke
+        env:
+          BASE: ${{ vars.FS_PROD_BACKEND_URL || 'https://fs-prod-api.fastapicloud.dev' }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            if curl --fail --silent --show-error "$BASE/healthz"; then
+              echo
+              break
+            fi
+            if [ "$attempt" -eq 18 ]; then
+              echo "API health check failed at $BASE/healthz" >&2
+              exit 1
+            fi
+            sleep 10
+          done
           bash ops/smoke.sh "$BASE"
