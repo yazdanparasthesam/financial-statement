@@ -12,7 +12,7 @@ full audit trail — instead of juggling spreadsheets and email.
 > 🌐 **Live Demo:** [Open Financial Statement](https://fs-dev-web.vercel.app)<br>
 > 🎥 **Video Demo:**
 
-[Screencast from 10-27-2026 03:46:33 AM.webm](https://github.com/user-attachments/assets/efe949fa-548a-40f0-9f4d-4208ea5cb17c)
+[Financial Statement Demo.webm](https://github.com/user-attachments/assets/efe949fa-548a-40f0-9f4d-4208ea5cb17c)
 
 
 ---
