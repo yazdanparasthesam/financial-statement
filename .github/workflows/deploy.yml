@@ -2,6 +2,7 @@
 # added after the Vercel dev project and its CI-only deployment credentials exist.
 # Native FastAPI Cloud GitHub deployment is intentionally disabled; this workflow
 # deploys only the exact commit whose CI run succeeded.
+#deploy-vercel.yml deploys the frontend after this API deployment succeeds.
 name: Deploy
 
 on:
@@ -40,7 +41,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Check out the exact commit CI tested
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
