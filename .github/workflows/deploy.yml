@@ -1,7 +1,8 @@
-# CI-gated FastAPI Cloud deployment for the API. The sibling
-# deploy-vercel.yml workflow deploys the Vercel frontend only after this workflow
-# succeeds, using the same source SHA. Native provider-side Git deployment stays
-# disabled so deployments cannot bypass CI.
+# CI-gated API and frontend deployment. Dev frontend deploys in the sibling
+# deploy-vercel.yml workflow after the dev API deploy. A production dispatch uses
+# one protected production job to prebuild the Vercel frontend, deploy/verify the
+# API, then deploy/verify the frontend at the same selected commit. Native provider
+# Git deployment stays disabled so CI and the manual environment gate cannot be bypassed.
 name: Deploy
 
 on:
@@ -158,3 +159,63 @@ jobs:
             -o "$RUNNER_TEMP/fs-prod-version.json"
           python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["app"] == "Financial Statement"' \
             "$RUNNER_TEMP/fs-prod-version.json"
+
+      # Prebuild the production frontend only after the protected environment
+      # approval. The build is not a deployment; the API remains the first live
+      # service updated, and the frontend is released only after API health passes.
+      - name: Set up Node.js for the production frontend
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Install pinned Vercel CLI
+        run: npm install --global vercel@65.3.1
+
+      - name: Pull production Vercel project settings
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_PROD_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_PROD_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROD_PROJECT_ID }}
+          VERCEL_TELEMETRY_DISABLED: "1"
+        run: |
+          set -euo pipefail
+          test -n "$VERCEL_TOKEN" || { echo "Set VERCEL_PROD_TOKEN in the protected production environment" >&2; exit 1; }
+          test -n "$VERCEL_ORG_ID" || { echo "Set VERCEL_PROD_ORG_ID in the protected production environment" >&2; exit 1; }
+          test -n "$VERCEL_PROJECT_ID" || { echo "Set VERCEL_PROD_PROJECT_ID in the protected production environment" >&2; exit 1; }
+          vercel pull --yes --environment=production
+
+      - name: Build the production frontend without deploying
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_PROD_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_PROD_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROD_PROJECT_ID }}
+          VERCEL_TELEMETRY_DISABLED: "1"
+        run: vercel build --prod
+
+      - name: Deploy prebuilt frontend to the production Vercel project
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_PROD_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_PROD_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROD_PROJECT_ID }}
+          VERCEL_TELEMETRY_DISABLED: "1"
+        run: vercel deploy --prebuilt --prod
+
+      - name: Verify the production frontend root and SPA deep link
+        env:
+          BASE: ${{ vars.FS_PROD_WEB_URL || 'https://fs-prod-web.vercel.app' }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            if curl --fail --silent --show-error "$BASE" -o "$RUNNER_TEMP/fs-prod-web.html" &&
+               grep -q '<div id="root"></div>' "$RUNNER_TEMP/fs-prod-web.html" &&
+               curl --fail --silent --show-error "$BASE/login" -o "$RUNNER_TEMP/fs-prod-web-login.html" &&
+               grep -q '<div id="root"></div>' "$RUNNER_TEMP/fs-prod-web-login.html"; then
+              echo "Production frontend root and SPA deep-link are responding at $BASE"
+              exit 0
+            fi
+            if [ "$attempt" -eq 18 ]; then
+              echo "Production frontend root or SPA deep-link check failed at $BASE" >&2
+              exit 1
+            fi
+            sleep 10
+          done
