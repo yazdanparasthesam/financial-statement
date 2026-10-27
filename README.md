@@ -10,8 +10,7 @@ full audit trail — instead of juggling spreadsheets and email.
 
 > 🔗 **GitHub Repo:** [yazdanparasthesam/financial-statement](https://github.com/yazdanparasthesam/financial-statement)<br>
 > 🌐 **Live Demo:** [Open Financial Statement](https://fs-dev-web.vercel.app)<br>
-> 🎥 **Video Demo:** [Financial Statement Demo.webm](https://github.com/user-attachments/assets/20d426de-6f68-4299-9178-c3e6eb162c6d)<br>
-> 📦 **Optional repository video copy:** `docs/videos/Screencast from 10-27-2026 03:46:33 AM.webm` — commit this asset before linking it.
+> 🎥 **Video Demo:** [Financial Statement Demo.webm](https://github.com/user-attachments/assets/a65faa09-e810-44c7-b275-61831bf37bb6)<br>
 
 <p align="center">
   <img src="docs/images/financial-statement-readme-banner.png" alt="AI-assisted financial reporting, data flow, and secure review" width="100%">
