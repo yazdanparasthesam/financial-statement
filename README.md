@@ -10,8 +10,9 @@ full audit trail — instead of juggling spreadsheets and email.
 
 > 🔗 **GitHub Repo:** [yazdanparasthesam/financial-statement](https://github.com/yazdanparasthesam/financial-statement)<br>
 > 🌐 **Live Demo:** [Open Financial Statement](https://fs-dev-web.vercel.app)<br>
-> 🎥 **Video Demo:**
-[Financial Statement Demo.webm](https://github.com/user-attachments/assets/9543b01c-43ab-4f9b-8794-933cdd62b96a)<br>
+> 🎥 **Video Demo:** [Financial Statement Demo.webm](https://github.com/user-attachments/assets/9543b01c-43ab-4f9b-8794-933cdd62b96a)<br>
+
+
 
 
 <p align="center">
