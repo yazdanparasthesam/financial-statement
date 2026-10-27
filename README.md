@@ -9,7 +9,11 @@ full audit trail — instead of juggling spreadsheets and email.
 > English UI, Iranian statutory context (اظهارنامه مالیاتی / صورت‌های مالی).
 
 
-> 🎥 **Video Demo:** [Watch the Financial Statement screencast](docs/videos/Screencast%20from%2010-27-2026%2003%3A46%3A33%20AM.webm)
+> 🌐 **Live Demo:** [Open Financial Statement](https://fs-dev-web.vercel.app)<br>
+> 🎥 **Video Demo:**
+
+[Screencast from 10-27-2026 03:46:33 AM.webm](https://github.com/user-attachments/assets/efe949fa-548a-40f0-9f4d-4208ea5cb17c)
+
 
 ---
 
