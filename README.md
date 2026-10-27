@@ -8,6 +8,9 @@ full audit trail — instead of juggling spreadsheets and email.
 > Built for the [DataTalksClub AI Dev Tools Zoomcamp 2026](https://github.com/DataTalksClub/ai-dev-tools-zoomcamp) final project.
 > English UI, Iranian statutory context (اظهارنامه مالیاتی / صورت‌های مالی).
 
+
+> 🎥 **Video Demo:** [Watch the Financial Statement screencast](docs/videos/Screencast%20from%2010-27-2026%2003%3A46%3A33%20AM.webm)
+
 ---
 
 ## The problem
@@ -60,6 +63,28 @@ computed by code, never by a model.
         └── collector → Tempo/Loki/Prometheus → Grafana :3001 → Alertmanager → on-call agent
 ```
 
+### System architecture & data flow
+
+The system separates **data preparation**, **deterministic financial computation**, **AI-assisted explanation**, and **human review**. The diagram follows the filing from browser upload through validation and persistence, then shows the guarded dev deployment path.
+
+![Financial Statement system architecture and data flow](docs/images/financial-statement-system-architecture.svg)
+
+**Important boundaries:**
+
+- **Deterministic financials:** the domain engine maps accounts and computes statements, ratios, deadlines, and validation results. AI never supplies figures used in financial statements.
+- **Bounded AI assistance:** LangGraph workflows draft notes, explain anomalies, answer read-only filing questions, and prepare audit memos. People edit/finalize notes and decide whether to submit or accept a filing.
+- **Persistence:** hosted dev uses the Neon `dev` branch; local/test runs can use SQLite. Production is intended to use a separate Neon branch and credentials.
+- **Observability:** API, AI-request, and workflow activity are instrumented; the optional Compose profile provisions Prometheus, Grafana, Tempo, Loki, and the on-call responder.
+- **Deployment gate:** GitHub Actions CI gates the dev API deployment; the Vercel dev deployment follows only after the API deploy and smoke test succeed. Production uses a separate manual path; its resources and required-reviewer protection remain pending.
+
+| Layer | Main implementation | Responsibility |
+|---|---|---|
+| Browser and API | `frontend/src/`; `backend/app/routers/` | Preparer/reviewer UI, typed API client, auth, filings, uploads, and exports |
+| Financial engine | `backend/app/domain/`; `backend/app/services/` | Mapping, P&L/Balance Sheet/Cash Flow, ratios, deadlines, validation, and anomalies |
+| AI assistance | `backend/app/infra/ai/`, `backend/app/services/ai_service.py`, `backend/app/routers/ai.py` | Mock/Gemini provider, bounded note drafting, read-only assistant tools, and review memo |
+| Persistence and audit | SQLAlchemy models and repositories; Neon/PostgreSQL or SQLite | Users, companies, filings, statement versions, workflow history, comments, and AI request records |
+| Monitoring and release | `observability/`, `oncall-agent/`, `.github/workflows/` | Metrics/logs/traces, alerts, CI-gated dev deployment, and manual production workflow |
+
 **Design law (see [AGENTS.md](AGENTS.md)):** *the model reasons, the system computes, the human
 decides.* All arithmetic lives in `backend/app/domain/` (pure functions, unit-tested). The LLM
 never produces a number that reaches a statement; it only explains, drafts, or suggests — and a
@@ -78,8 +103,8 @@ output. Every LLM call is logged to the `ai_requests` table
 | AI | LangChain + LangGraph; Google Gemini (`gemini-2.0-flash`) or deterministic `MockChatModel` | Self-criticism notes loop · ReAct assistant · ReWOO audit memo · explanations · mapping suggestions |
 | Exports | openpyxl, fpdf2 | XLSX/PDF statements & checklist |
 | Containers | Docker, docker compose, nginx | One-command full stack |
-| CI/CD | GitHub Actions → Render deploy hooks | Tests + security scans gate deployment |
-| Deploy | Render (web service + static site) + Neon Postgres | Public URLs (see [docs/deployment.md](docs/deployment.md)) |
+| CI/CD | GitHub Actions: CI gates API dev deployment; successful API deploy triggers Vercel dev deployment; production is manually gated | CI #10 (`10f7387`), API Deploy #10, and Deploy Vercel Web #3 are green; production approval/deploy remains pending |
+| Deploy | FastAPI Cloud dev API and Vercel `fs-dev-web` are live; Vercel remains Git-unconnected | API: https://fs-dev-api.fastapicloud.dev · Web: https://fs-dev-web.vercel.app; browser flow reaches Draft Review (notes finalization, submission, and production pending); see [docs/deployment.md](docs/deployment.md) |
 | Observability | Prometheus, Grafana, Tempo, Loki, OTel Collector, Alertmanager | Metrics/traces/logs on one trace id; user-impact alerts wake the on-call agent ([docs/observability.md](docs/observability.md)) |
 
 ## Quickstart (one command)
@@ -173,34 +198,45 @@ Details: [docs/testing.md](docs/testing.md).
 Without any API key the AI runs in deterministic **mock mode** (`AI_PROVIDER=mock`); set
 `AI_PROVIDER=gemini` + `GEMINI_API_KEY` for live responses. Same endpoints, same logging.
 
-## Repository map
+## Repository Structure
 
-```
-├── frontend/            React SPA (src/api centralized client, vitest tests)
-├── backend/             FastAPI (app/{routers,services,domain,infra}, tests/{unit,integration})
-├── openapi.yaml         THE API contract — regenerated via `make openapi`, drift fails CI
-├── docker-compose.yml   db + backend + frontend, one command
-├── neon.ts + .vscode/mcp.json  Neon branch policy + CLI/MCP endpoint configuration
-├── package.json         root build/test scripts and Neon CLI dependencies
-├── product-spec.md      personas, journeys, functional spec, rule table, glossary
-├── AGENTS.md            instructions for coding agents working on this repo
-├── seed/                demo trial balances (clean, prior-year, unbalanced, unmapped)
-├── docs/                architecture · ai-workflow · testing · deployment · operations
-│                        observability · agent-team · course-submission-runbook · agent-extension-pack · permissions
-├── security/            audit brief · AI data policy · agent security · telemetry policy
-│                        credentials handling · scan artifacts (runs/)
-├── observability/       otel-collector · prometheus (+rules) · alertmanager · tempo · loki
-│                        grafana provisioning (datasources + golden-journey dashboard)
-├── oncall-agent/        responder agent (webhook :8090) · runbooks.yaml · tests · example report
-├── tracker/             GitHub-Issues source of truth (14 prepared issues) · import.sh
-├── evidence/            submission evidence index + success-only screenshot slots
-├── ops/                 smoke.sh · alert-drill.sh · diagnostics.sh · runbooks/ · incidents/
-│                        troubleshooting/ (separate issue logs)
-├── agent-capabilities/  reusable workflows + prompt library
-├── agent-hooks/         guardrails (tool-use guard, pre-commit secret scan)
-├── mcp-server/          read-only MCP server exposing filing tools to coding agents
-├── custom-agent/        "validation-auditor" subagent definition
-└── .github/workflows/   ci.yml · deploy.yml (dev auto / prod manual) · rollback.yml
+```text
+financial-statement/
+├── README.md                    # Product overview, architecture, quickstart, demo, rubric and status
+├── AGENTS.md                    # Coding-agent instructions and project guardrails
+├── product-spec.md              # Personas, requirements, acceptance criteria, rules and glossary
+├── openapi.yaml                 # API contract; generated/checked by CI for drift
+├── docker-compose.yml           # Frontend + API + database; one-command local stack
+├── Makefile                     # Common development, test and contract commands
+├── neon.ts                      # Neon branch policy/configuration
+├── frontend/                    # React + Vite + TypeScript application
+│   └── src/                     # Pages, components, auth, API client and frontend logic
+├── backend/                     # FastAPI application and automated tests
+│   ├── app/
+│   │   ├── routers/             # HTTP endpoints (filings, statements, AI, workflow, exports)
+│   │   ├── services/            # Use-case orchestration and application services
+│   │   ├── domain/              # Deterministic financial logic and business rules
+│   │   └── infra/               # Database, AI providers/graphs and telemetry integrations
+│   ├── scripts/                 # Backend utilities and demo seeding
+│   └── tests/
+│       ├── unit/                # Isolated domain and service tests
+│       └── integration/         # API, persistence and workflow tests
+├── seed/                        # Clean, prior-year, unbalanced and unmapped demo trial balances
+├── docs/                        # Architecture, testing, deployment, operations and course guides
+│   ├── images/                  # Embedded system architecture/data-flow diagram
+│   └── course-submission-runbook.md # Step-by-step submission status and remaining tasks
+├── evidence/                    # Success-only screenshot index and documented evidence
+├── observability/               # OpenTelemetry, Prometheus, Grafana, Tempo, Loki and alert rules
+├── oncall-agent/                # Alert responder, runbooks, tests and incident-report examples
+├── ops/                         # Smoke tests, alert drill, diagnostics and troubleshooting records
+├── security/                    # AI/data/telemetry policies, security audit and scan artifacts
+├── security-audit/              # Credential-handling and security-review documentation
+├── tracker/                     # Issue templates/source used to maintain the public task tracker
+├── agent-capabilities/          # Reusable agent workflows and prompt library
+├── agent-hooks/                 # Coding-agent guardrails and safety hooks
+├── custom-agent/                # Validation-auditor subagent definition
+├── mcp-server/                  # Read-only MCP server exposing filing tools to agents
+└── .github/workflows/           # CI, gated dev deploy, manual production deploy and rollback
 ```
 
 ## AI-assisted development
@@ -238,38 +274,58 @@ committed under `security/runs/`. Read: [security/audit-brief.md](security/audit
 Owner-side screenshots are indexed in [evidence/README.md](evidence/README.md) (successful
 frames only). Local extraction (Docker Compose v2.27.0), app-only Compose startup, backend health, frontend login, the **28/28 live HTTP smoke test**, and the temporary Neon-branch FastAPI/database journey are verified; see [evidence/README.md](evidence/README.md).
 The complete step-by-step path—public repo/issues, Docker verification,
-observability/alert drill, Render dev/prod, CI/CD, evidence, and mandatory peer reviews—is
-in [docs/course-submission-runbook.md](docs/course-submission-runbook.md).
+observability/alert drill, FastAPI Cloud/Vercel dev deployment, pending production route,
+CI/CD, evidence, and mandatory peer reviews—is in
+[docs/course-submission-runbook.md](docs/course-submission-runbook.md).
 
-## Deployment — owner setup pending
+## Deployment — dev live; production pending
 
-**The repository currently contains the deploy/CD configuration, but public services have not
-been created from this workspace.** Deployment URLs and live workflow evidence must be added
-by the owner following [docs/deployment.md](docs/deployment.md).
+**The dev API and frontend are publicly deployed through the CI-gated workflow.** See [docs/deployment.md](docs/deployment.md) and the [evidence index](evidence/README.md).
 
-- Dev backend/frontend: Render services + Neon dev database — URLs pending owner setup
-- Production backend/frontend: separate Render services + Neon production database — URLs pending
-- CI/CD: GitHub Actions workflows prepared (auto dev after green CI; manually approved prod;
-  rollback workflow). Deploy hooks/secrets and green hosted runs still need owner configuration.
+- Dev API: FastAPI Cloud `fs-dev-api` is **Live** at `https://fs-dev-api.fastapicloud.dev`; gated `/healthz` and lifecycle smoke passed.
+- Dev frontend: Vercel `fs-dev-web` is live at `https://fs-dev-web.vercel.app`; public checks returned HTTP 200 for `/` and `/login`. Browser registration, balanced trial-balance upload, statements, validation, mock notes, and review memo succeeded. The filing remains Draft; finalize notes before submitting for review.
+- CI/CD: CI #10 (`10f7387`), API Deploy #10, and Deploy Vercel Web #3 are green. Vercel remains Git-unconnected; its workflow deploys only after the successful API deployment.
+- Production API/frontend: separate FastAPI Cloud + Vercel projects and Neon `production` branch remain pending, as does required-reviewer approval setup.
 
-## Project rubric guide (for reviewers)
+## Final Project
 
-Official final-project criteria → where each one is satisfied:
+The Financial Statement app applies the full course workflow to one application: an AI-assisted financial-statement and tax-filing platform for Iranian companies. It turns the project idea into a specified, tested, containerized, observable application with a live development deployment and a guarded production path. The course accepts projects of any size, language, and stack; this project uses Python, TypeScript, React, FastAPI, and PostgreSQL/SQLite. The expected effort is roughly 20 hours across the second month, with two attempts against the same project and criteria if the first deadline is missed.
 
-| # | Criterion | Where to look |
-|---|---|---|
-| 1 | Problem & functionality described | README §The problem / §What the system does + [product-spec.md](product-spec.md) |
-| 2 | Spec + public task tracker with acceptance criteria and agent evidence | [product-spec.md](product-spec.md) · [tracker definitions](tracker/) · [public GitHub Issues](https://github.com/yazdanparasthesam/financial-statement/issues) (14 issues; #1–#8/#14 closed, #9–#13 open; reconcile #10–#12 local/public status) |
-| 3 | Agent team & how it works together | [docs/agent-team.md](docs/agent-team.md) (roster, process diagram, handoff contracts) |
-| 4 | AGENTS.md → modular docs | [AGENTS.md](AGENTS.md) + `docs/*` (architecture, ai-workflow, testing, deployment, operations, observability, permissions) |
-| 5 | Full-stack E2E, one-command local run | README §Quickstart (`docker compose up --build`) + §The demo story |
-| 6 | Unit + integration tests, single command | `make test` (backend pytest incl. on-call engine) · `cd frontend && npm test` · [docs/testing.md](docs/testing.md) |
-| 7 | Full system incl. DB via compose | [docker-compose.yml](docker-compose.yml) (db+backend+frontend; `--profile obs` adds the telemetry stack) |
-| 8 | Deployed / deployment demo | README §Deployment + [docs/deployment.md](docs/deployment.md) (public URLs and successful smoke runs pending owner setup) |
-| 9 | CI tests + CD (dev auto, prod manual) + rollback | [.github/workflows/](.github/workflows/): ci.yml · deploy.yml (workflow_run → dev; dispatch + `environment: production` → prod) · rollback.yml |
-| 10 | Journey instrumented: metrics+traces+logs, one trace id, no PII, viewable | [docs/observability.md](docs/observability.md) · Grafana :3001 golden-journey dashboard · [security/telemetry-policy.md](security/telemetry-policy.md) · `backend/tests/unit/test_telemetry.py` |
-| 11 | Alert on user impact | `observability/prometheus/rules/user-impact.yaml` (4 rules) + Alertmanager routing |
-| 12 | On-call agent wakes & fixes | [oncall-agent/](oncall-agent/) + `./ops/alert-drill.sh` → incident reports in `ops/incidents/` |
+### What this project submits
+
+- **One project idea, taken end to end:** help accountants prepare, validate, explain, review, and export statutory financial statements from a trial balance.
+- **Problem and acceptance criteria before implementation:** see [The problem](#the-problem), [product-spec.md](product-spec.md), and the public [GitHub Issues tracker](https://github.com/yazdanparasthesam/financial-statement/issues).
+- **A connected frontend, backend, and persistent database:** React/Vite, FastAPI, and SQLite/PostgreSQL, with local full-stack startup via `docker compose up --build`.
+- **Automated tests:** backend unit and integration tests, frontend tests, and end-to-end smoke checks. Commands and scope are documented in [docs/testing.md](docs/testing.md).
+- **Containerization and deployment:** Docker Compose for local use; FastAPI Cloud + Vercel for the live dev deployment. The separate production path is manual and remains pending provider setup and approval protection.
+- **CI/CD and rollback:** CI gates the dev API deployment, the frontend deploy follows a successful API deploy and smoke test, and a separate production/rollback workflow is documented in GitHub Actions.
+- **Observability, user-impact alerting, and an on-call responder:** correlated metrics, traces, structured logs, alert rules, and a constrained responder agent; see [Observability, alerting & on-call](#observability-alerting-on-call).
+- **English documentation:** the UI and statutory context are project-specific; reviewer-facing docs are in English.
+
+### Peer Reviewing — Important
+
+Peer review is part of the final project, not a bonus. Each participant must evaluate **three projects** from other course participants. Submitting without completing the required peer reviews does not pass, regardless of the project score. Reviewers should identify what was built, how it was built, which technologies were used, and then assess it against the criteria below. Check the [course platform](https://courses.datatalks.club/ai-dev-tools-2026/) for exact deadlines and review workflow. Peer-review completion is an individual course-platform requirement and cannot be demonstrated by this repository alone.
+
+### Evaluation Criteria Checklist
+
+There are **12 criteria worth 24 points**; **10 points** are required to pass. This project-specific checklist maps the rubric to implementation and evidence. It is a self-assessment guide, not an awarded grade; confirm the linked artifacts and live services during review.
+
+| # | Criterion (max) | Rubric target | Financial Statement implementation and evidence |
+|---|---|---|---|
+| 1 | Problem Description (2) | README clearly explains the problem, functionality, and expected behavior. | [The problem](#the-problem), [What the system does](#what-the-system-does), and [product-spec.md](product-spec.md) describe the accounting workflow, users, and expected outcomes. |
+| 2 | Product Specification (2) | Written specification plus a public task tracker whose tasks have acceptance criteria and evidence of agent use. | [product-spec.md](product-spec.md), [tracker source](tracker/), and [public GitHub Issues](https://github.com/yazdanparasthesam/financial-statement/issues). Review the public issues and linked implementation/agent evidence before awarding full points. |
+| 3 | Agent Team Specification (2) | Agent roles, responsibilities, and collaboration process are clear. | [docs/agent-team.md](docs/agent-team.md) documents the roster, handoffs, and process; [docs/ai-workflow.md](docs/ai-workflow.md) records the AI-assisted development workflow. |
+| 4 | Context Management (2) | `AGENTS.md` describes the project and points to modular project/process documentation. | [AGENTS.md](AGENTS.md) links into the modular `docs/` set, including architecture, testing, deployment, observability, AI workflow, and permissions. |
+| 5 | Application (2) | Frontend, backend, and persistent storage work end to end; local startup is one command. | [Quickstart](#quickstart-one-command) uses `docker compose up --build`; [docker-compose.yml](docker-compose.yml) connects the frontend, API, and database. See [deployment/evidence](evidence/README.md) for verified journeys. |
+| 6 | Testing (2) | Unit and integration tests both run and pass with a documented command. | Backend unit/integration, frontend tests, responder tests, and smoke checks are listed in [Tests](#tests) and [docs/testing.md](docs/testing.md). Run the documented test commands when reproducing the submission. |
+| 7 | Containerization (2) | The full system, including its database, starts through Docker/Compose with one command. | [docker-compose.yml](docker-compose.yml) starts the app and database; the optional `obs` profile adds the telemetry stack. See [Quickstart](#quickstart-one-command). |
+| 8 | Deployment (2) | A working public deployment or a clear deployment demo is available. | Dev API [`fs-dev-api`](https://fs-dev-api.fastapicloud.dev) and web app [`fs-dev-web`](https://fs-dev-web.vercel.app) are live. Deployment and browser-test details are in [docs/deployment.md](docs/deployment.md) and [evidence/README.md](evidence/README.md). The filing lifecycle and production setup are still in progress. |
+| 9 | CI/CD (3) | Full credit requires tests, automatic dev deployment, and a manual production deployment path. | [GitHub Actions workflows](.github/workflows/) include CI, CI-gated dev deployment, a manual production workflow, and rollback. CI #10, API Deploy #10, and Deploy Vercel Web #3 are green. Production resources and required-reviewer protection still need setup and verification. |
+| 10 | Observability (2) | A key user journey has correlated metrics, traces, and structured logs; telemetry excludes customer data/credentials and is viewable in a UI. | [docs/observability.md](docs/observability.md), [security/telemetry-policy.md](security/telemetry-policy.md), the telemetry tests, and the Grafana golden-journey dashboard describe the implementation. The optional Compose observability profile provides the local UI and collection stack. |
+| 11 | Alerting on User Impact (1) | At least one user-impact alert exists. | Four rules are defined in [`observability/prometheus/rules/user-impact.yaml`](observability/prometheus/rules/user-impact.yaml) and routed through Alertmanager. |
+| 12 | On-Call Agent (2) | An agent wakes on an alert and safely fixes the issue. | [oncall-agent/](oncall-agent/) contains the responder, allow-listed recovery actions, and tests. [`./ops/alert-drill.sh`](ops/alert-drill.sh) exercises the alert-to-recovery path and records incident reports under [`ops/incidents/`](ops/incidents/). |
+
+**Transparent status:** the dev API/frontend and CI-gated dev deploy are live. The browser filing is currently Draft: finalize/save the notes before submitting it for review. Production resources and required-reviewer protection are not yet configured. The README’s video-demo link points to the expected `.webm`; the video must be added by the project owner before that link is usable. See the [course submission runbook](docs/course-submission-runbook.md) for the step-by-step status and remaining actions.
 
 ## License
 
