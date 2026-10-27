@@ -1,7 +1,7 @@
 # Troubleshooting episode 004 — GitHub CLI authenticated with an over-scoped token
 
-**Date:** 2026-10-26\
-**Status:** owner deferred credential rotation until the final checklist; current `gh` authentication works, no issue creation yet.\
+**Date:** 2026-10-26  
+**Status:** owner deferred credential rotation until the final checklist; current `gh` authentication works, no issue creation yet.  
 **Evidence handling:** no token value or screenshot retained. The screenshot displayed a masked token and broad scope names only.
 
 ## What happened

@@ -1,106 +1,78 @@
-# Deployment (Render + Neon) — prepared; owner-side setup pending
+# Deployment — FastAPI Cloud + Vercel + Neon (in progress)
 
-Topology: **Render static site** (frontend) + **Render web service** (backend, Docker) +
-**Neon serverless Postgres** (`DATABASE_URL`). Dev and production each have their own
-frontend/backend services (and preferably separate Neon branches/databases). Chosen for
-free-tier durability: Render's own free Postgres expires after 90 days; Neon's free tier does not.
+## Current state (2026-10-27)
 
-## 1. Database — Neon
+The selected no-card route is **FastAPI Cloud for the API, Vercel for the frontend, and Neon for PostgreSQL**. The dev API and dev frontend are live; production resources, approval gate, and in-browser end-to-end validation remain pending.
 
-Neon is the managed database provider. The AWS region is only where Neon runs the database; create and manage it in Neon Console. **No AWS account or AWS console setup is required.**
+- FastAPI Cloud `fs-dev-api` is **Live** at `https://fs-dev-api.fastapicloud.dev` (region `us-east-1`). CI-gated API Deploy runs #8 and #9 succeeded after the CORS origin was saved. `/healthz` and the API lifecycle smoke are green.
+- `DATABASE_URL` and `JWT_SECRET` are configured as FastAPI Cloud secrets for the dev API. `AI_PROVIDER` remains the code default `mock`. `CORS_ORIGINS=https://fs-dev-web.vercel.app` was saved and applied by a later gated API deployment.
+- GitHub repository secrets `FASTAPI_CLOUD_TOKEN` and `FASTAPI_CLOUD_APP_ID` are configured; values are not documented. Neon `dev` is a child of `production`; the successful API lifecycle smoke confirms the dev database path works.
+- Vercel Hobby project `fs-dev-web` is live at `https://fs-dev-web.vercel.app` and remains Git-unconnected, preserving the CI gate. The local `frontend/` folder is linked to team `hesam2`; Vercel CLI created an ignored `.env.local` containing a local `VERCEL_OIDC_TOKEN`—never commit or share it. Settings are root `frontend`, install `npm ci`, build `npm run build`, output `dist`; Framework Preset is `Other`. `frontend/vercel.json` supplies the Vite SPA rewrite for deep links.
+- GitHub Actions secret names `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, and `VERCEL_TOKEN` are present; values are hidden. The project-scoped Vercel token was set to expire 2026-11-26. `VITE_API_URL` remains masked; successful browser registration, filing creation, upload, statement generation, and validation functionally confirm the frontend/API connection without disclosing the value.
+- Latest CI #10 for commit `10f7387`, API Deploy #10, and Deploy Vercel Web #3 are green. The Vercel workflow checks out the triggering API deployment's exact SHA, builds/deploys the dev web project, then checks `/` and `/login`. Independent public checks returned HTTP 200 for the frontend root, `/login`, and API `/healthz`. Browser testing reached the Review page with a clear mock audit memo, but the filing remains Draft; Submit for review is still pending. Evidence #57 captures the latest green workflow sequence.
+- The initial npm registry DNS failures are resolved; see [troubleshooting episode 014](../ops/troubleshooting/014-vercel-cli-npm-registry-dns.md). Earlier FastAPI Cloud runtime failures were resolved; see [episode 013](../ops/troubleshooting/013-fastapi-cloud-healthz-404.md). Do not deploy from the FastAPI Cloud dashboard or connect Vercel Git integration.
 
-1. neon.tech → create or select project `financial-statement` (AWS eu-central-1 or us-east-1).
-2. Authenticate the Neon CLI with `neon login` (or `npx --yes neon@latest login` when the CLI is not installed globally) and complete the browser authorization.
-3. In the project root, link/configure the intended project branch with `neon init`; review the proposed changes using `neon config plan`, then use `neon deploy` to apply `neon.ts` and pull branch environment variables. The verified `production` plan had no changes and listed Postgres as the utilized service.
-The generated `neon.ts` keeps Neon Auth disabled (the app already has JWT auth) and applies a seven-day TTL only to newly created non-default branches; production remains unchanged. Postgres is the only utilized service. The root npm manifest retains `@neon/config` and `@neon/env` and provides a root `npm run build` that builds the frontend.
+## Deployment guardrails
 
-The application uses SQLAlchemy 2 + psycopg 3 (`psycopg[binary]`). Keep this existing driver. Use the pooled app connection string as `DATABASE_URL`; use the direct `DATABASE_URL_UNPOOLED` only for migrations/admin tasks that need it. The backend loads `.env` / `.env.local` from the repository root (as well as the legacy `backend/.env`) and normalizes generic `postgresql://` or `postgres://` URLs to SQLAlchemy's `postgresql+psycopg://` form while preserving query options such as `sslmode=require`.
+1. **CI must pass before dev deploys.** Dev deployment is triggered only by the successful `CI` workflow completing on `main`, and the deployment job checks out that exact tested SHA.
+2. **Production is manual.** The production job uses the protected GitHub `production` environment with required reviewers and verifies CI succeeded for the selected SHA.
+3. **No native FastAPI Cloud GitHub auto-deploy.** The repo source is disconnected. Use the FastAPI Cloud deploy token from GitHub Actions only.
+4. **No credentials in Git, chat, screenshots, or this document.** Keep database URL, JWT secret, and deploy tokens in secret stores. Do not use `Import .env` in the provider dashboard.
+5. **No card entry.** Stop if any provider asks for payment details.
 
-## 2. Backend — Render web service
+## 1. Neon PostgreSQL
 
-1. New → Web Service → point at your `financial-statement` repo → **Runtime: Docker** (uses
-   `backend/Dockerfile`; set *Root Directory* to `backend`).
-2. Environment:
-   - `DATABASE_URL` = Neon string (from step 1)
-   - `JWT_SECRET` = output of `python -c "import secrets; print(secrets.token_urlsafe(48))"`
-   - `AI_PROVIDER` = `gemini` (or `mock` for a key-less demo instance)
-   - `GEMINI_API_KEY` = your key (marked secret in Render)
-   - `CORS_ORIGINS` = your frontend URL (explicit, not `*`)
-3. Health check path: `/healthz`. Free tier sleeps after idle — first request ≈ 30–60 s
-   cold start (documented in README).
+The existing `financial-statement` Neon project has `production` and `dev` branches; `dev` is a child of `production`. The temporary `neon-smoke` branch expires and is not for a long-lived deployment.
 
-## 3. Frontend — Render static site
+- The application reads `DATABASE_URL` and normalizes generic `postgresql://` / `postgres://` strings for its psycopg 3 SQLAlchemy driver.
+- Use the **pooled** `dev` connection for the FastAPI Cloud app. Confirm the hostname contains `-pooler` and the Connect modal is set to branch `dev`, database `neondb`, role `neondb_owner`, and pooling on. Neon recommends pooled connections for serverless request workloads ([connection-string docs](https://neon.com/docs/connect/connect-from-any-app)).
+- The dev role password was reset after a connection string was exposed in an earlier screenshot. The user saved the new pooled connection string privately and configured it as the encrypted `DATABASE_URL` secret; successful CI-gated API lifecycle smoke has since verified the dev database connection.
+- If the earlier exposed URL may have referenced `production`, rotate that branch's role password separately before creating the production app. Use distinct dev/prod secrets.
+- Do not run the end-to-end smoke against production. Local `ops/neon-e2e-smoke.py` previously passed against temporary Neon test data and cleans up its temporary user.
 
-1. New → Static Site → repo → *Root Directory* `frontend`.
-2. Build command `npm ci && npm run build`; publish directory `dist`.
-3. Environment (build-time): `VITE_API_URL=https://<backend>.onrender.com`.
-4. SPA rewrite: Render static sites serve `index.html` fallback automatically for 404s —
-   confirm "Rewrites" shows `/* → /index.html 200`.
+Official Neon references: [role password reset](https://neon.com/docs/manage/roles), [pooled connections](https://neon.com/docs/connect/connection-pooling).
 
-### Create both environments
+## 2. FastAPI Cloud API
 
-Create four Render services from the same public GitHub repository:
+### Dev app
 
-| Environment | Service | Render configuration |
-|---|---|---|
-| dev | `fs-dev-api` | Docker, root `backend`, health `/healthz`, dev Neon `DATABASE_URL` |
-| dev | `fs-dev-web` | Static, root `frontend`, build `npm ci && npm run build`, publish `dist`, `VITE_API_URL=https://<dev-api>` |
-| prod | `fs-prod-api` | Docker, root `backend`, production Neon `DATABASE_URL`, production `JWT_SECRET` |
-| prod | `fs-prod-web` | Static, root `frontend`, prod `VITE_API_URL=https://<prod-api>` |
+- App name: `fs-dev-api`.
+- Repository: `yazdanparasthesam/financial-statement`; **disconnected** from the app's Source/Repository settings to prevent un-gated pushes.
+- Application root: `backend` (`requirements.txt`, `app/main.py`, and `Dockerfile` are in this directory).
+- The dev app is **Live** at `https://fs-dev-api.fastapicloud.dev`; GitHub's successful gated deploy runs #8 and #9 are recorded in the runbook/evidence index. Do not use the dashboard's manual deployment control.
+- App secrets: `DATABASE_URL`, `JWT_SECRET`, and `CORS_ORIGINS=https://fs-dev-web.vercel.app`. The app uses the deterministic `mock` AI provider for the course demo.
+- The FastAPI Cloud deploy-token value is stored outside the repository. GitHub repository Actions secret names are `FASTAPI_CLOUD_TOKEN` and `FASTAPI_CLOUD_APP_ID`; values are not documented.
 
-Set backend `CORS_ORIGINS` to that environment's frontend URL. Create a Deploy Hook for
-all four services. Put the dev hooks in the GitHub `dev` environment (or repository secrets)
-and the prod hooks in the `production` environment. Do not reuse JWT/database secrets
-between dev and prod. Give both pairs distinct Render URLs and add those URLs to README.
+The default hostname is derived from the app name, e.g. `fs-dev-api.fastapicloud.dev`. Confirm the actual URL on the app after deployment; if it differs, set GitHub Actions variable `FS_DEV_BACKEND_URL` before the next deployment. FastAPI Cloud documents app-name-to-hostname conversion [here](https://fastapicloud.com/docs/other-resources/how-app-urls-are-generated/).
 
-## 4. CD — dev automatic, prod manual, rollback ready
+### Production app (not created yet)
 
-`.github/workflows/ci.yml` runs the full suite (backend unit+integration on Postgres
-service, frontend tests+build, on-call engine tests, security scans).
+Create `fs-prod-api` as a separate FastAPI Cloud app with application root `backend`, using **Empty/manual deployment** (not GitHub Repo). Configure the production Neon connection and a distinct JWT secret before deployment. Add deploy-token and app-ID secrets as `FASTAPI_CLOUD_PROD_TOKEN` and `FASTAPI_CLOUD_PROD_APP_ID` in the protected GitHub `production` environment. Do not create it until the production Neon credential has been checked/rotated as needed.
 
-**Dev — automatic.** `.github/workflows/deploy.yml` (job `deploy-dev`) triggers on
-`workflow_run: CI completed` for `main`, **only if `conclusion == success`**, and curls the
-dev Render deploy hooks. Then it runs `ops/smoke.sh` against `FS_DEV_BACKEND_URL`.
+## 3. GitHub Actions deployment gate
 
-**Prod — manual, gated.** The same workflow's `deploy-prod` job runs only via
-**Run workflow** (`workflow_dispatch`) and is attached to the GitHub `production`
-**environment**: create it under Settings → Environments → `production` → *Required
-reviewers* = you. Optional `sha` input deploys a specific commit. Post-deploy smoke runs
-against `FS_PROD_BACKEND_URL`.
+`.github/workflows/ci.yml` runs backend unit/integration tests, frontend tests/build, on-call tests, and security scans. `.github/workflows/deploy.yml` is the controlled deploy workflow:
 
-**Rollback.** `.github/workflows/rollback.yml` (dispatch: bad SHA or blank = HEAD, plus a
-reason) reverts on main → CI re-runs → dev auto-redeploys the reverted state; for instant
-prod rollback use Render → Deploys → **Rollback** (no CI wait). Details:
-`ops/runbooks/rollback.md`.
+- **Dev:** `workflow_run` listens for the `CI` workflow. It deploys only when CI concludes `success`, the branch is `main`, and the run belongs to this repository. It checks out `workflow_run.head_sha` so the deployed code is exactly what CI tested. It uses `uvx` with `fastapi[standard]` and `FASTAPI_CLOUD_TOKEN` / `FASTAPI_CLOUD_APP_ID`, then checks `/healthz` and runs `ops/smoke.sh` against the dev URL.
+- **Production:** `workflow_dispatch` only; attached to GitHub Environment `production` (required reviewers). The selected full commit SHA must have a successful CI run before deployment. Production has separate token/app-ID secrets and a post-deploy smoke. Production resources and reviewer protection remain pending.
+- **Dev web:** `.github/workflows/deploy-vercel.yml` listens for successful completion of the API `Deploy` workflow, filters to its trusted `main`-branch CI-triggered run, and checks out `workflow_run.head_sha`. It pulls the Vercel project's Production-target settings, builds, deploys prebuilt output, and verifies `/` plus `/login`.
+- Do not use FastAPI Cloud's direct GitHub integration or connect the Vercel project to Git; either would bypass these gates.
 
-### Secrets & variables checklist (Settings → Secrets and variables → Actions)
+The provider-adapted workflows are present and the latest CI/API/Vercel chain is green. Preserve the existing CI and deploy gates; do not overwrite `.github/workflows/deploy.yml` with a platform-generated push-to-deploy template.
 
-| Name | Kind | Where from |
-|---|---|---|
-| `RENDER_DEPLOY_HOOK_BACKEND` | secret | dev backend service → Settings → Deploy Hook |
-| `RENDER_DEPLOY_HOOK_FRONTEND` | secret | dev frontend service → Settings → Deploy Hook |
-| `RENDER_DEPLOY_HOOK_PROD_BACKEND` | secret | prod backend service → Deploy Hook |
-| `RENDER_DEPLOY_HOOK_PROD_FRONTEND` | secret | prod frontend service → Deploy Hook |
-| `FS_DEV_BACKEND_URL` | variable | e.g. `https://fs-dev-backend.onrender.com` |
-| `FS_PROD_BACKEND_URL` | variable | prod backend public URL |
+## 4. Vercel frontend
 
-## 5. Verification (evidence for criterion 8)
+- Dev project `fs-dev-web` is a Vercel Hobby project, Git-unconnected, and live at `https://fs-dev-web.vercel.app`. Keep it unconnected so Vercel cannot bypass the GitHub CI gate. The local `frontend/` directory is linked to team `hesam2`; its ignored `.env.local` contains a local OIDC token and must not be committed or shared.
+- Build settings: root `frontend`, install `npm ci`, build `npm run build`, output `dist` (Framework Preset `Other`). `frontend/vercel.json` rewrites SPA paths to `/index.html`, allowing direct navigation to `/login`.
+- Vercel project `VITE_API_URL` is set for the dev project's Production target and remains masked. Successful live browser registration and API-backed data operations functionally confirm the configured dev frontend/API connection; do not reveal the value in evidence.
+- GitHub repository secrets `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, and `VERCEL_TOKEN` are configured. The token is project-scoped to `fs-dev-web`, expires 2026-11-26, and its value must remain private.
+- `.github/workflows/deploy-vercel.yml` performs `vercel pull`, `vercel build --prod`, and `vercel deploy --prebuilt --prod` only after successful CI-gated API deployment. Its post-deploy smoke checks `/` and `/login`. Latest Deploy Vercel Web #3 is green.
+- Production frontend `fs-prod-web` has not been created. After the production API and protected approval environment are ready, create it separately, set its own `VITE_API_URL`, and add a distinct exact production CORS origin. Do not enter payment details if a provider requests a card.
 
-For a live Neon backend check, first `neon checkout neon-smoke` (the configured seven-day test branch), then run `backend/.venv/bin/python ops/neon-e2e-smoke.py` from the repository root. The script reads the ignored branch dotenv locally, normalizes the pooled URL for psycopg 3, starts the FastAPI app in-process, tests `/healthz` and register/login/me, and removes its temporary user/audit row. It prints only status codes, never configuration values. Do not run it against production.
+The API currently defaults to mock AI; no `GEMINI_API_KEY` is needed for this deterministic course demo.
 
-```bash
-curl -i https://<backend>.onrender.com/healthz        # 200 {"status":"ok"}
-curl -s https://<backend>.onrender.com/version        # app Financial Statement, ai_provider gemini
-bash ops/smoke.sh https://<backend>.onrender.com      # full lifecycle over HTTPS
-bash ops/diagnostics.sh https://<backend>.onrender.com | tee ops/runs/$(date +%F)-prod-diagnosis.txt
-```
-Open the frontend URL, run the demo story, screenshot both. URLs go into README §Deployment.
+## 5. Verification and evidence
 
-## Rollback
+The latest CI/API/Vercel chain is green: CI #10 (`10f7387`), API Deploy #10, Deploy Vercel Web #3. Public HTTP checks returned 200 for the dev frontend `/`, frontend `/login`, and API `/healthz`; the API lifecycle smoke also passed during its gated deploy. The owner tested registration/login, company and filing creation, a balanced 20-account upload, generated statements, 8/8 validation, mock notes, and an audit memo in the browser.
 
-Two paths (see §4): the **Rollback workflow** (`git revert` → CI → dev auto-redeploy,
-prod via manual deploy) and Render's built-in rollback — Render keeps prior successful
-deploys → service → Deploys → pick previous → "Rollback".
-DB is not auto-migrated in v1 (`create_all` is additive-only); schema changes that need
-migration land with Alembic post-M7 (see architecture.md ADR 3). Details:
-`ops/runbooks/rollback.md`.
+The Export checklist shows that the Revenue note is not yet finalized, and the filing has not been submitted. First open **Notes (AI)** and click **Save final text**; verify the notes item is checked on Export. Then return to **Review**, click **Submit for review**, and capture the resulting status. Preserve redacted evidence only; do not expose account email, National ID, passwords, or provider secrets. Production resources and manual approval protection remain pending; do not mark the overall deployment task complete until those are configured and verified.

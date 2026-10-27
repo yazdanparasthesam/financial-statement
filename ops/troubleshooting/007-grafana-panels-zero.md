@@ -1,7 +1,7 @@
 # Troubleshooting episode 007 — Grafana dashboard loads but business panels show zero
 
-**Date:** 2026-10-26\
-**Status:** resolved; Grafana panels populated, Loki returned structured logs with trace IDs, and the TraceID link opened the matching Tempo trace with spans.\
+**Date:** 2026-10-26  
+**Status:** resolved; Grafana panels populated, Loki returned structured logs with trace IDs, and the TraceID link opened the matching Tempo trace with spans.  
 **Evidence handling:** no screenshot retained; the current dashboard view is not a successful metric-population frame.
 
 ## Observed

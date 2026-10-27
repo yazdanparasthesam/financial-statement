@@ -3,22 +3,23 @@
 ## System context
 
 ```
-┌──────────────┐   HTTPS    ┌──────────────────────┐
-│  Browser SPA │ ─────────► │ FastAPI backend      │
-│ React 18+TS  │  REST/JSON │  routers → services  │
-│ (nginx/Render│ ◄───────── │  → domain (pure)     │
-│  static)     │            │  infra (IO adapters) │
-└──────────────┘            └───────┬──────┬───────┘
-                                    │      │
-                        ┌───────────▼──┐ ┌─▼──────────────┐
-                        │ PostgreSQL 16│ │ Gemini API     │
-                        │ (SQLite dev) │ │ (or Mock model)│
-                        └──────────────┘ └────────────────┘
+┌─────────────────────┐  HTTPS/REST   ┌───────────────────────────┐
+│ Browser SPA         │ ────────────► │ FastAPI Cloud API         │
+│ Vercel static build │ ◄──────────── │ routers → services        │
+│ React 18 + TypeScript│               │ → domain (pure) / infra   │
+└─────────────────────┘               └─────────────┬───────┬─────┘
+                                                    │       │
+                                      ┌─────────────▼──┐ ┌──▼─────────────┐
+                                      │ Neon Postgres  │ │ Gemini API     │
+                                      │ (SQLite local) │ │ (or Mock model)│
+                                      └────────────────┘ └────────────────┘
 ```
 
-All frontend traffic flows through **one** module (`frontend/src/api/client.ts`); in dev the
-Vite server proxies `/api` to `:8000`, in compose nginx does the same — the browser only ever
-talks to one origin, so there are no CORS or hardcoded-localhost hazards in production builds.
+All frontend API calls flow through **one** module (`frontend/src/api/client.ts`). Local Vite
+uses its development server configuration; the app-only Compose deployment uses nginx.
+For the selected split hosting route, the production build targets the FastAPI Cloud API through
+`VITE_API_URL`, and FastAPI CORS is restricted to the exact Vercel origin. No browser code uses
+hardcoded `localhost` in production builds.
 
 ## Backend layers (dependency direction is inward)
 
@@ -60,8 +61,7 @@ Key invariants enforced in code, not just docs:
    This is the course principle made literal: model reasons, system verifies.
 5. **Redaction at the AI boundary.** `ai_service.redact()` strips national IDs, economic
    codes and emails before prompt construction; only hashes of prompts are stored.
-6. **Static + API split for deployment.** Render static site (frontend) + Render web service
-   (backend Docker) + Neon Postgres. Free-tier friendly; cold start documented.
+6. **Static + API split for deployment.** Vercel static frontend + FastAPI Cloud API + Neon Postgres. Local Compose/nginx remains for one-command development and observability. The public route uses CI-gated deploy tokens; native default-branch auto-deploy is disabled to preserve the CI gate.
 7. **Alerting via Prometheus rules + Alertmanager, not Grafana-provisioned alerts.**
    Provisioned Grafana alerts silently stick in *Normal* when the reduce/threshold
    expression refIds are misconfigured (`execErrState: OK` masks the evaluator error —

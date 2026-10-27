@@ -17,5 +17,5 @@ The responder agent (oncall-agent/) receives the Alertmanager webhook and runs:
    - **DB down / wrong DATABASE_URL** → `docker compose up -d db`, wait for healthy, restart backend.
    - **Missing secret** (JWT_SECRET) → check `.env`; redeploy.
    - **Bad migration / model change** → roll back to the last good image (`ops/runbooks/rollback.md`).
-4. Cloud (Render): use the dashboard **Rollback** to the previous deploy, then investigate.
+4. Cloud (FastAPI Cloud): inspect deployment/runtime logs; a failed rollout keeps the last successful deployment live. For a bad successful API deploy, run the GitHub Actions **Rollback** workflow with a previously CI-green SHA; production waits for approval.
 5. After recovery, confirm in Grafana (:3001) that `up == 1` and the 5xx panel is flat.

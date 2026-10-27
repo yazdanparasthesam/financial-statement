@@ -256,3 +256,39 @@ Thumbs.db
 !.vscode/mcp.json
 # Neon linked-project metadata (local branch selection)
 .neon
+
+# Project-specific ignore rules from the ZIP
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# --- node ---
+node_modules/
+dist/
+coverage/
+
+# --- environment & secrets (never commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+
+# --- local databases & artifacts ---
+*.db
+*.sqlite3
+backend/financial-statement.db*
+
+# --- OS/editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/mcp.json
+
+# Neon linked-project metadata (local branch selection)
+.neon

@@ -4,7 +4,8 @@
 in dated prose in the relevant troubleshooting record; do not save or embed failure screenshots.
 
 Add a screenshot only after the corresponding owner-side step succeeds, then embed it in
-`docs/course-submission-runbook.md` under that step.
+`docs/course-submission-runbook.md` under that step. A cropped Export checklist snapshot is
+embedded there as an in-progress instruction only; it is intentionally not indexed as completion evidence.
 
 | File | What it proves | Status |
 |---|---|---|
@@ -39,7 +40,7 @@ Add a screenshot only after the corresponding owner-side step succeeds, then emb
 | `06-alertmanager-cleared.png` | Alertmanager cleared BackendDown after remediation | **verified (2026-10-26)** |
 | `../ops/incidents/20261025-221233-BackendDown-2e62e391.md` | Responder report proving BackendDown remediation (`Status: remediated`) | **verified (2026-10-26)**
 | `../ops/incidents/20261025-221257-BackendDown-2e62e391.md` | Follow-up resolved webhook report | received (2026-10-26)
-| `08-dev-deployed.png` | Dev public frontend/backend URLs and smoke test | pending Render/Neon setup |
+| `08-dev-deployed.png` | Final browser proof of a submitted dev filing and public API/web URLs | pending owner clicks Submit for review and captures resulting status; current browser flow through Draft review is indexed as evidence 62–71 |
 | `09-prod-approved.png` | Production approval, deployed URLs, and smoke test | pending production gate |
 | `10-peer-reviews.png` | Three course-platform peer reviews completed | pending course platform |
 | `08-neon-e2e-smoke.png` | FastAPI against temporary Neon branch: health 200, register 201, login 200, /me 200; temporary user cleaned up | **verified (2026-10-26)** |
@@ -51,6 +52,61 @@ Add a screenshot only after the corresponding owner-side step succeeds, then emb
 | `14-neon-smoke-schema.png` | Neon Console schema view for the application's audit-log table | **verified (2026-10-26)** |
 | `15-neon-smoke-branches.png` | Neon branch list: `neon-smoke` child of production, compute active; account/browser chrome cropped | **verified (2026-10-26)** |
 | `16-neon-smoke-monitoring.png` | Neon monitoring view shows database activity after smoke; hostnames not included | **verified (2026-10-26)** |
+| `17-fastapi-cloud-hobby-dashboard.png` | FastAPI Cloud dashboard shows no app created yet; setup/access evidence only, not deployment proof | **verified (2026-10-26)** |
+| `18-vercel-hobby-dashboard.png` | Vercel Hobby workspace usage panel; account name and unrelated project cards excluded; setup/access evidence only | **verified (2026-10-26)** |
+| `19-fastapi-cloud-create-app-options.png` | FastAPI Cloud offers GitHub Repo and Empty app creation paths; account and browser identity excluded | **verified (2026-10-27)** |
+| `20-fastapi-cloud-github-repository-list.png` | GitHub integration installed; public `financial-statement` repository is available to select | **verified (2026-10-27; setup only)** |
+| `21-fastapi-cloud-backend-app-config.png` | Initial pre-create form confirms repository and `backend` application directory | **verified (2026-10-27; setup only)** |
+| `22-fastapi-cloud-dev-app-config.png` | Updated pre-create form uses app name `fs-dev-api` and correct `backend` application directory | **verified (2026-10-27; setup only)** |
+| `23-fastapi-cloud-created-not-deployed.png` | FastAPI Cloud dev API app `fs-dev-api` exists and shows **Not deployed**; GitHub source remains connected; no code deployed | **verified (2026-10-27; setup only)** |
+| `24-fastapi-cloud-source-settings-connected.png` | Settings confirm `backend` root directory and currently connected GitHub repository; app remains not deployed | **verified (2026-10-27; pre-disconnect setup state)** |
+| `25-fastapi-cloud-source-disconnect-control.png` | Scrolled settings show the repository **Disconnect** control; action not yet taken at capture time | **verified (2026-10-27; pre-disconnect setup state)** |
+| `26-fastapi-cloud-github-disconnected.png` | FastAPI Cloud settings show repository **Not Connected** and root directory `backend`; auto-deploy integration removed | **verified (2026-10-27)** |
+| `27-fastapi-cloud-env-empty.png` | Environment Variables page shows no variables set; app remains not deployed | **verified (2026-10-27; pre-configuration state)** |
+| `28-fastapi-cloud-env-entry-form.png` | Blank environment-variable entry form; no values entered or saved | **verified (2026-10-27; pre-configuration state)** |
+| `29-neon-dev-role-list.png` | Neon `dev` branch has role `neondb_owner`, which owns database `neondb`; no credential shown | **verified (2026-10-27; pre-rotation state)** |
+| `30-neon-dev-role-list-branch-context.png` | Same Neon Roles view with project and `dev` branch selector visible; no credential shown | **verified (2026-10-27; pre-rotation state)** |
+| `31-neon-dev-role-reset-menu.png` | Neon `dev` role menu shows **Reset password** for `neondb_owner`; no reset completed in this capture | **verified (2026-10-27; pre-rotation state)** |
+| `32-neon-dev-role-after-reset.png` | User-reported post-reset Neon `dev` Roles view; no password shown; database connection test will verify the new credential | **owner-confirmed (2026-10-27; connection check pending)** |
+| `33-fastapi-cloud-env-keys-partial.png` | Partial Environment Variables view shows `DATABASE_URL` and `JWT_SECRET` key names; values, Secret toggles, and save status are cropped out | **observed (2026-10-27; configuration not yet verified)** |
+| `34-fastapi-cloud-dev-secrets-saved.png` | `DATABASE_URL` and `JWT_SECRET` are saved as encrypted secrets; values masked; app remains not deployed | **owner-confirmed (2026-10-27)** |
+| `35-fastapi-cloud-deploy-token-active.png` | Active FastAPI Cloud deploy token is listed; token value is not shown; expires Jan 25, 2027; last used Never | **verified (2026-10-27; GitHub secret setup pending)** |
+| `36-github-actions-secrets-empty.png` | Initial GitHub Actions repository-secrets page before FastAPI Cloud secrets were added | **verified (2026-10-27; historical setup state)** |
+| `37-github-actions-secrets-configured.png` | Repository secret names `FASTAPI_CLOUD_APP_ID` and `FASTAPI_CLOUD_TOKEN` now exist; values are not displayed | **verified (2026-10-27)** |
+| `38-github-deploy-workflow-committed.png` | GitHub shows the FastAPI Cloud CI-gated deployment workflow committed to `main`; hosted CI/deployment result is not shown | **verified (2026-10-27; commit a520622)** |
+| `39-github-fastapi-deploy-7-green.png` | GitHub Actions CI #7 and the automatically gated FastAPI Cloud Deploy #7 are both green for commit `009f887` | **verified (2026-10-27)** |
+| `40-fastapi-cloud-dev-deployment-live.png` | FastAPI Cloud dashboard shows `fs-dev-api` Live and latest deployment Ready; historical failures excluded from crop | **verified (2026-10-27; region us-east-1)** |
+| `41-vercel-fs-dev-web-cli-created.png` | Vercel CLI confirms the empty `fs-dev-web` project was created; one-time device-authentication code and local shell identity are excluded | **verified (2026-10-27)** |
+| `42-vercel-fs-dev-web-empty-project.png` | Vercel dashboard shows `fs-dev-web` and “Connect Git Repository”; project remains unlinked and undeployed | **verified (2026-10-27)** |
+| `43-vercel-api-url-env-production.png` | `VITE_API_URL` saved in the Vercel project for Production; value is masked in the screenshot | **owner-confirmed (2026-10-27; verify it matches dev API URL before deployment)** |
+| `44-vercel-build-and-root-settings.png` | Vercel build command `npm run build`, output `dist`, install `npm ci`, root `frontend`; custom overrides saved, preset shows Other | **verified (2026-10-27)** |
+| `45-vercel-root-ignore-node-settings.png` | Root directory `frontend`; outside-root files included; skip-deployment optimization left disabled | **verified (2026-10-27)** |
+| `46-vercel-basic-build-machine-settings.png` | Vercel project uses the Basic Hobby build machine; no paid build-machine upgrade selected | **verified (2026-10-27)** |
+| `47-vercel-deployment-checks-and-rollout-settings.png` | No Vercel deployment checks configured; CI gate remains in GitHub Actions; on-demand concurrency unavailable on Hobby | **verified (2026-10-27)** |
+| `48-vercel-oidc-and-retention-settings.png` | Rolling releases remain disabled; no OIDC policies configured; these are not needed for the planned CLI-token workflow | **verified (2026-10-27)** |
+| `49-vercel-retention-settings.png` | Vercel deployment retention values reviewed at their existing 30-day settings | **verified (2026-10-27)** |
+| `50-fastapi-cloud-dev-cors-origin-saved.png` | FastAPI Cloud `CORS_ORIGINS` set to the exact Vercel dev origin; `DATABASE_URL` and `JWT_SECRET` remain masked | **owner-confirmed (2026-10-27; Save Only, applies on next deployment)** |
+| `51-vercel-fs-dev-web-local-link.png` | Vercel CLI confirms local `frontend/` is linked to team/project `hesam2/fs-dev-web`; token line and local identity are excluded | **verified (2026-10-27; no deployment)** |
+| `52-vercel-project-metadata-redacted.png` | Local Vercel project metadata confirms `fs-dev-web`; organization/project IDs and shell identity are cropped out | **verified (2026-10-27; redacted)** |
+| `53-vercel-project-scoped-token-settings.png` | Vercel token configuration selected scope `fs-dev-web` and 30-day expiry through 2026-11-26; no token value shown | **verified (2026-10-27; configuration form)** |
+| `54-github-vercel-secrets-before-addition.png` | GitHub Actions secrets page before Vercel setup; only the two FastAPI Cloud secret names are present | **verified (2026-10-27; baseline)** |
+| `55-github-vercel-deploy-secrets-configured.png` | GitHub repository Actions secret names `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, and `VERCEL_TOKEN` are present; values are hidden | **verified (2026-10-27)** |
+| `56-github-vercel-dev-deploy-green.png` | GitHub Actions shows CI #9, API Deploy #9, and Deploy Vercel Web #2 green; commit `179fbd8` is visible on main | **verified (2026-10-27)** |
+| `57-github-latest-dev-deploy-green.png` | Latest GitHub Actions shows CI #10 (`10f7387`), API Deploy #10, and Deploy Vercel Web #3 green | **verified (2026-10-27)** |
+| `58-vercel-dev-project-production-ready.png` | Vercel `fs-dev-web` overview shows the Production deployment Ready at the public dev domain | **verified (2026-10-27)** |
+| `59-vercel-dev-deployment-details-ready.png` | Vercel deployment details mark the latest deployment Ready and Production/Current for `fs-dev-web.vercel.app` | **verified (2026-10-27)** |
+| `60-vercel-preview-login-page.png` | The Vercel-generated deployment URL serves the Financial Statement sign-in page | **verified (2026-10-27; preview deployment)** |
+| `61-dev-web-login-page.png` | The stable `fs-dev-web.vercel.app/login` URL renders the Financial Statement sign-in page | **verified (2026-10-27)** |
+| `62-dev-web-registration-form-redacted.png` | Registration page renders; full name, email, and password values are blanked in this evidence copy | **verified (2026-10-27; redacted)** |
+| `63-dev-web-empty-dashboard.png` | Newly registered dev user reaches the initial Dashboard; no account email is included | **owner-confirmed (2026-10-27; redacted crop)** |
+| `64-dev-web-company-created-redacted.png` | Dashboard company/filing form shown with the entered National ID value blanked | **owner-provided (2026-10-27; identifier redacted)** |
+| `65-dev-web-filing-created.png` | Synthetic company and FY2026 filing #9 appear on the dev dashboard in Draft status | **owner-confirmed (2026-10-27; redacted crop)** |
+| `66-dev-web-trial-balance-step.png` | Filing #9 opens at the Trial Balance step and accepts a CSV/XLSX upload | **owner-confirmed (2026-10-27; redacted crop)** |
+| `67-dev-web-trial-balance-uploaded.png` | 20-account trial balance loaded; debits and credits each total 909,000 | **owner-confirmed (2026-10-27; synthetic data)** |
+| `68-dev-web-statements-generated.png` | Deterministic Profit & Loss and Balance Sheet generated from the uploaded trial balance | **owner-confirmed (2026-10-27; synthetic data)** |
+| `69-dev-web-validation-passed.png` | Validation reports 8/8 passed and clean; prior-year checks are skipped because none is on file | **owner-confirmed (2026-10-27; synthetic data)** |
+| `70-dev-web-mock-notes-generated.png` | Mock AI Revenue note is generated and displayed; **Save final text has not yet been clicked** | **owner-confirmed (2026-10-27; redacted crop)** |
+| `71-dev-web-review-draft.png` | Review page shows mock audit memo and a clear gate, but filing remains Draft; Submit for review has not been clicked | **owner-confirmed (2026-10-27; pre-submit)** |
 
 See [`docs/course-submission-runbook.md`](../docs/course-submission-runbook.md) for the
 step-by-step procedure and screenshot placement.

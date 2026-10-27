@@ -1,7 +1,7 @@
 # Troubleshooting episode 006 — Hosted CI failures after publication
 
-**Date:** 2026-10-26\
-**Status:** fixed and verified by green CI run #3 on commit `6b643c1`; issue #8 closure pending.\
+**Date:** 2026-10-26  
+**Status:** fixed and verified by green CI run #3 on commit `6b643c1`; issue #8 closure pending.  
 **Evidence handling:** failure screenshot not retained; record only prose until successful green runs exist.
 
 ## Observed

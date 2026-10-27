@@ -1,7 +1,7 @@
 # Troubleshooting episode 003 — GitHub CLI install via APT did not complete
 
-**Date:** 2026-10-26\
-**Status:** direct verified-package installation requested; not yet confirmed.\
+**Date:** 2026-10-26  
+**Status:** direct verified-package installation requested; not yet confirmed.  
 **Evidence handling:** terminal output was supplied as text; no failure screenshot retained.
 
 ## What happened

@@ -1,64 +1,170 @@
+# Manual API rollback/redeploy of a previously CI-green commit.
+# This does not mutate main. For a permanent code revert, create a normal
+# `git revert` commit/PR; the standard CI-gated dev workflow will deploy it.
 name: Rollback
-
-# Rollback path (submission requirement). Two levels:
-#   1. THIS workflow — revert a bad commit on main. CI re-runs; dev auto-redeploys
-#      the reverted state. For prod, run Deploy (workflow_dispatch) afterwards, or…
-#   2. Render dashboard → service → Deploys → "Rollback" for an instant prod
-#      revert to the previous deploy (no CI wait). See ops/runbooks/rollback.md.
 
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: "API environment to restore"
+        type: choice
+        options: [dev, prod]
+        default: dev
+        required: true
       target_sha:
-        description: "SHA of the BAD commit to revert (blank = revert latest commit on main)"
-        required: false
-        default: ""
+        description: "Full 40-character SHA of the known-good commit on main"
+        required: true
       reason:
-        description: "Why are we rolling back? (recorded in the revert message)"
+        description: "Reason for rollback (recorded in the run summary)"
         required: true
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
-  revert:
+  rollback-dev:
+    if: inputs.environment == 'dev'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
+    timeout-minutes: 30
+    environment: dev
+    concurrency:
+      group: fastapi-cloud-dev
+      cancel-in-progress: false
+    env:
+      TARGET_SHA: ${{ inputs.target_sha }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out target commit and full history
+        uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.target_sha }}
           fetch-depth: 0
 
-      - name: Revert the bad commit and push main
+      - name: Verify target is on main and has successful CI
         env:
-          TARGET: ${{ inputs.target_sha }}
-          REASON: ${{ inputs.reason }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          BAD="${TARGET:-HEAD}"
-          echo "Reverting $BAD — reason: $REASON"
-          git revert --no-edit -m 1 "$BAD" 2>/dev/null || git revert --no-edit "$BAD"
-          MSG="$(git log -1 --pretty=%B) (rollback reason: $REASON)"
-          git commit --amend -m "$MSG"
-          if ! git push origin main; then
-            echo "::warning::Direct push blocked (branch protection?) — opening a PR instead."
-            BR="rollback/$(date +%s)"
-            git checkout -b "$BR"
-            git push origin "$BR"
-            gh pr create --title "Rollback: revert $BAD" \
-                         --body "Automated rollback. Reason: $REASON" --base main
+          set -euo pipefail
+          if ! [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Provide a full 40-character commit SHA." >&2; exit 1
           fi
+          git fetch origin main
+          git merge-base --is-ancestor "$TARGET_SHA" origin/main || {
+            echo "Target SHA must be reachable from main." >&2; exit 1;
+          }
+          gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${TARGET_SHA}&per_page=100" \
+            > "$RUNNER_TEMP/ci-runs.json"
+          jq -e --arg sha "$TARGET_SHA" \
+            'any(.workflow_runs[]; .head_sha == $sha and .conclusion == "success")' \
+            "$RUNNER_TEMP/ci-runs.json" >/dev/null || {
+              echo "No successful CI run found for $TARGET_SHA" >&2; exit 1;
+            }
 
-      - name: Summary — what to do next
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Redeploy known-good API commit to dev
+        working-directory: backend
         env:
-          TARGET: ${{ inputs.target_sha }}
+          FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
+          FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
+        run: |
+          set -euo pipefail
+          uvx --from "fastapi[standard]" fastapi deploy --app-id "$FASTAPI_CLOUD_APP_ID"
+
+      - name: Verify dev health and lifecycle
+        env:
+          BASE: ${{ vars.FS_DEV_BACKEND_URL || 'https://fs-dev-api.fastapicloud.dev' }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            if curl --fail --silent --show-error "$BASE/healthz"; then echo; break; fi
+            if [ "$attempt" -eq 18 ]; then echo "Health check failed" >&2; exit 1; fi
+            sleep 10
+          done
+          bash ops/smoke.sh "$BASE"
+
+      - name: Record rollback result
+        env:
           REASON: ${{ inputs.reason }}
         run: |
           {
-            echo "### Rollback executed"
-            echo "- Reverted: \`${TARGET:-HEAD}\` (reason: $REASON)"
-            echo "- CI will re-run on main; **dev** redeploys automatically."
-            echo "- **prod**: run *Deploy* (workflow_dispatch) after CI passes, or use"
-            echo "  Render → Deploys → Rollback for an instant revert (ops/runbooks/rollback.md)."
+            echo "### Dev API rollback completed"
+            echo "- Restored commit: \`$TARGET_SHA\`"
+            echo "- Reason: $REASON"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  rollback-prod:
+    if: inputs.environment == 'prod'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    concurrency:
+      group: fastapi-cloud-production
+      cancel-in-progress: false
+    env:
+      TARGET_SHA: ${{ inputs.target_sha }}
+    steps:
+      - name: Check out target commit and full history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
+
+      - name: Verify target is on main and has successful CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Provide a full 40-character commit SHA." >&2; exit 1
+          fi
+          git fetch origin main
+          git merge-base --is-ancestor "$TARGET_SHA" origin/main || {
+            echo "Target SHA must be reachable from main." >&2; exit 1;
+          }
+          gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${TARGET_SHA}&per_page=100" \
+            > "$RUNNER_TEMP/ci-runs.json"
+          jq -e --arg sha "$TARGET_SHA" \
+            'any(.workflow_runs[]; .head_sha == $sha and .conclusion == "success")' \
+            "$RUNNER_TEMP/ci-runs.json" >/dev/null || {
+              echo "No successful CI run found for $TARGET_SHA" >&2; exit 1;
+            }
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Redeploy known-good API commit to production
+        working-directory: backend
+        env:
+          FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_PROD_TOKEN }}
+          FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_PROD_APP_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$FASTAPI_CLOUD_TOKEN" || { echo "Configure FASTAPI_CLOUD_PROD_TOKEN in the protected production environment" >&2; exit 1; }
+          test -n "$FASTAPI_CLOUD_APP_ID" || { echo "Configure FASTAPI_CLOUD_PROD_APP_ID in the protected production environment" >&2; exit 1; }
+          uvx --from "fastapi[standard]" fastapi deploy --app-id "$FASTAPI_CLOUD_APP_ID"
+
+      - name: Verify production health and lifecycle
+        env:
+          BASE: ${{ vars.FS_PROD_BACKEND_URL || 'https://fs-prod-api.fastapicloud.dev' }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            if curl --fail --silent --show-error "$BASE/healthz"; then echo; break; fi
+            if [ "$attempt" -eq 18 ]; then echo "Health check failed" >&2; exit 1; fi
+            sleep 10
+          done
+          bash ops/smoke.sh "$BASE"
+
+      - name: Record rollback result
+        env:
+          REASON: ${{ inputs.reason }}
+        run: |
+          {
+            echo "### Production API rollback completed"
+            echo "- Restored commit: \`$TARGET_SHA\`"
+            echo "- Reason: $REASON"
+            echo "- This run passed through the protected production environment."
           } >> "$GITHUB_STEP_SUMMARY"

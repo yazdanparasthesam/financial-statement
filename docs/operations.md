@@ -2,7 +2,7 @@
 
 ## Health & version
 
-- `GET /healthz` → `{"status":"ok"}` (liveness; Render health-check path).
+- `GET /healthz` → `{"status":"ok"}` (liveness endpoint for local Compose and hosted FastAPI Cloud).
 - `GET /version` → `{app, version, ai_provider}` — confirms which build and AI mode is live
   without exposing internals.
 
@@ -30,7 +30,7 @@ Run after every deploy; output is the operational evidence for criterion 13.
 - Compose: `docker compose logs -f backend`; with `--profile obs`, query them in Grafana
   → Explore → Loki: `{service_name="financial-statement-backend"} | json` — every line
   with `trace_id` renders a jump-to-trace link (Tempo).
-- Render: service → Logs tab; free tier keeps 7 days.
+- FastAPI Cloud: app → Logs for deployment/build/runtime output; see the [provider docs](https://fastapicloud.com/docs/monitoring-and-performance/logs/).
 - The app logs to stdout (12-factor); no log files inside containers.
 - Privacy contract for every signal: `security/telemetry-policy.md`.
 
@@ -59,9 +59,9 @@ Full guide: `docs/observability.md`.
 
 | Symptom | First check | Runbook |
 |---|---|---|
-| 502/slow first request on Render | free-tier cold start (~1 min) | wait, re-curl `/healthz` |
+| Slow first request on FastAPI Cloud | scale-to-zero may have resumed the app | wait, re-curl `/healthz`, then inspect the app's runtime logs |
 | `/version` shows `ai_provider: mock` in prod | `AI_PROVIDER`/`GEMINI_API_KEY` env | fix env → manual deploy |
-| AI endpoints return "[AI UNAVAILABLE]" text | provider outage/key quota; deterministic features unaffected by design | check Render logs; `ai_requests.status='error'` rows confirm |
+| AI endpoints return "[AI UNAVAILABLE]" text | provider outage/key quota; deterministic features unaffected by design | check FastAPI Cloud runtime logs; `ai_requests.status='error'` rows confirm |
 | Backend down in compose | `up == 0` in Prometheus → BackendDown alert → agent restarts + verifies | `ops/runbooks/backend-down.md` |
 | Contract test red in CI | someone changed routes without `make openapi` | run `make openapi`, commit |
 | Submit returns 422 naming R-ids | working as intended (gate) | fix data, re-validate |

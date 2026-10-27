@@ -1,8 +1,7 @@
-# CI-gated FastAPI Cloud deployment for the API. The Vercel frontend job will be
-# added after the Vercel dev project and its CI-only deployment credentials exist.
-# Native FastAPI Cloud GitHub deployment is intentionally disabled; this workflow
-# deploys only the exact commit whose CI run succeeded.
-#deploy-vercel.yml deploys the frontend after this API deployment succeeds.
+# CI-gated FastAPI Cloud deployment for the API. The sibling
+# deploy-vercel.yml workflow deploys the Vercel frontend only after this workflow
+# succeeds, using the same source SHA. Native provider-side Git deployment stays
+# disabled so deployments cannot bypass CI.
 name: Deploy
 
 on:
@@ -92,7 +91,7 @@ jobs:
       DEPLOY_SHA: ${{ inputs.sha || github.sha }}
     steps:
       - name: Check out the requested production commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 0

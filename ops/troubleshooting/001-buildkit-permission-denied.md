@@ -1,8 +1,8 @@
 # Troubleshooting episode 001 — Docker Buildx permission denied
 
-**Date:** 2026-10-25\
-**Environment:** Linux, Docker Compose v2.27.0, project at `~/Documents/financial-statement`\
-**Scope:** local app-only Docker Compose startup.\
+**Date:** 2026-10-25  
+**Environment:** Linux, Docker Compose v2.27.0, project at `~/Documents/financial-statement`  
+**Scope:** local app-only Docker Compose startup.  
 **Screenshots:** failure state intentionally not retained in `evidence/`; the successful retry is retained there.
 
 ## Symptom

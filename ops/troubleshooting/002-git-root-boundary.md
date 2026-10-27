@@ -1,7 +1,7 @@
 # Troubleshooting episode 002 — Git root was the home directory
 
-**Date:** 2026-10-25\
-**Status:** parent-root mistake confirmed; isolated project repository created and committed; merge is paused for conflict review.\
+**Date:** 2026-10-25  
+**Status:** parent-root mistake confirmed; isolated project repository created and committed; merge is paused for conflict review.  
 **Evidence handling:** failed/mis-scoped Git output is recorded only in prose, not saved in `evidence/`.
 
 ## Cause

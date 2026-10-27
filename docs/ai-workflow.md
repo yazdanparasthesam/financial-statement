@@ -81,7 +81,7 @@ extension pack's permission model.
 
 - **M0–M2 (this commit):** full-stack core built and verified as above.
 - **M4:** live Gemini verification (one real call per AI kind, logged) — pending.
-- **M7:** Neon Postgres branch + app API smoke passed; public Render dev/prod deployment and cold-start verification remain pending.
+- **M7:** Neon Postgres branch + app API smoke passed. FastAPI Cloud `fs-dev-api` is Live at `https://fs-dev-api.fastapicloud.dev`; its GitHub source remains disconnected, Neon/JWT secrets are configured, and CI-gated Deploy #7 passed. Vercel frontend and production deployment remain pending.
 - **M2.5 (formula engine + LangChain/LangGraph agents):** cash-flow statement (indirect
   method) + rules R007/R008 + 10 ratios with formula strings; AI layer rebuilt on
   LangChain/LangGraph — self-criticism notes loop, ReAct assistant, ReWOO audit memo
@@ -91,5 +91,5 @@ extension pack's permission model.
 - **M11–M12 (local/hosted evidence verified; public deployment pending):** Prometheus/OTel/Grafana/Loki/Tempo
   configs, privacy-redacted traces, user-impact alerts, in-Compose responder, alert drill,
   public issue importer, dev/prod CD and rollback workflow. Owner-side local Compose, telemetry,
-  alert/remediation, and hosted CI evidence are verified; public Render deployment and live CD
-  remain pending. The sandbox itself has no Docker daemon or deployment credentials.
+  alert/remediation, and hosted CI evidence are verified; public FastAPI Cloud/Vercel deployment and live CD
+  remain pending. Provider credentials are stored in provider/GitHub secret stores and never in the sandbox.

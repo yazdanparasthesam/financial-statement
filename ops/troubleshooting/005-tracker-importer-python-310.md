@@ -1,7 +1,7 @@
 # Troubleshooting episode 005 — Tracker importer compatibility with Python 3.10
 
-**Date:** 2026-10-26\
-**Status:** compatibility patch and dry run verified; commit `ce15063` pushed; all 14 public issues imported successfully; browser screenshot pending.\
+**Date:** 2026-10-26  
+**Status:** compatibility patch and dry run verified; commit `ce15063` pushed; all 14 public issues imported successfully; browser screenshot pending.  
 **Evidence:** successful dry-run screenshot at `evidence/step5-tracker-dry-run-14-open-pending.png`; no failure screenshot retained.
 
 ## Issue and resolution

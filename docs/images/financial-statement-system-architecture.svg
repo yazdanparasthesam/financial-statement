@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1130" role="img" aria-labelledby="title desc">
+  <title id="title">Financial Statement system architecture and data flow</title>
+  <desc id="desc">A four-layer architecture diagram showing browser input, FastAPI deterministic processing, AI-assisted notes and review workflow, PostgreSQL persistence and observability, and CI-gated dev deployment with manual production approval.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7cc7ff"/></marker>
+    <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c4a7ff"/></marker>
+    <style>
+      .bg{fill:#0b1220}.band{fill:#101d30;stroke:#263c58;stroke-width:1.5}.card{fill:#182a40;stroke:#35516f;stroke-width:1.4}.muted{fill:#26364b;stroke:#4c6078;stroke-width:1.2;stroke-dasharray:7 6}
+      .title{font:700 31px system-ui,-apple-system,Segoe UI,sans-serif;fill:#f3f7ff}.subtitle{font:400 16px system-ui,-apple-system,Segoe UI,sans-serif;fill:#aabbd0}.section{font:700 21px system-ui,-apple-system,Segoe UI,sans-serif;fill:#e8f0fc}.kicker{font:700 12px system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:.6px;fill:#86d9c2}.h{font:700 18px system-ui,-apple-system,Segoe UI,sans-serif;fill:#f4f7fc}.body{font:400 14px system-ui,-apple-system,Segoe UI,sans-serif;fill:#b9c8da}.small{font:400 12px system-ui,-apple-system,Segoe UI,sans-serif;fill:#9eb0c7}.step{font:800 14px system-ui,-apple-system,Segoe UI,sans-serif;fill:#0d1a29}.arrow{fill:none;stroke:#7cc7ff;stroke-width:2.4;marker-end:url(#arrow)}.arrowPurple{fill:none;stroke:#c4a7ff;stroke-width:2.4;marker-end:url(#arrowPurple)}.dash{fill:none;stroke:#8b9cb2;stroke-width:1.7;stroke-dasharray:6 6;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect class="bg" width="1440" height="1130" rx="22"/>
+  <text class="title" x="42" y="53">Financial Statement · System Architecture</text>
+  <text class="subtitle" x="44" y="82">Trial balance → deterministic statements → AI-assisted explanations → human review</text>
+  <rect x="1190" y="26" width="208" height="36" rx="18" fill="#153b39" stroke="#2c806f"/>
+  <text x="1294" y="49" text-anchor="middle" style="font:700 12px system-ui;fill:#80e0c4;letter-spacing:.5px">DEV LIVE · PROD PENDING</text>
+
+  <rect class="band" x="28" y="105" width="1384" height="228" rx="18"/>
+  <circle cx="57" cy="139" r="15" fill="#3b806e"/><text class="step" x="57" y="144" text-anchor="middle">01</text>
+  <text class="section" x="84" y="146">Prepare and compute</text>
+  <rect class="card" x="50" y="169" width="292" height="140" rx="14"/>
+  <rect x="66" y="169" width="260" height="4" rx="2" fill="#71d3b6"/>
+  <text class="kicker" x="70" y="193">USER INTERFACE</text><text class="h" x="70" y="219">Preparer · React + Vite</text>
+  <text class="body" x="70" y="246">Company and filing setup</text><text class="body" x="70" y="268">CSV/XLSX trial-balance upload</text><text class="body" x="70" y="290">Typed API client · JWT session</text>
+
+  <rect class="card" x="390" y="169" width="292" height="140" rx="14"/>
+  <rect x="406" y="169" width="260" height="4" rx="2" fill="#71d3b6"/>
+  <text class="kicker" x="410" y="193">APPLICATION API</text><text class="h" x="410" y="219">FastAPI · REST/JSON</text>
+  <text class="body" x="410" y="246">Auth, filings, upload, exports</text><text class="body" x="410" y="268">Pydantic contracts · SQLAlchemy</text><text class="body" x="410" y="290">OpenAPI contract checked in CI</text>
+
+  <rect class="card" x="730" y="169" width="292" height="140" rx="14"/>
+  <rect x="746" y="169" width="260" height="4" rx="2" fill="#75baff"/>
+  <text class="kicker" x="750" y="193" style="fill:#8fc7ff">DETERMINISTIC DOMAIN</text><text class="h" x="750" y="219">Map and generate</text>
+  <text class="body" x="750" y="246">Statutory account categories</text><text class="body" x="750" y="268">P&amp;L · Balance Sheet · Cash Flow</text><text class="body" x="750" y="290">10 ratios · deadlines · versions</text>
+
+  <rect class="card" x="1070" y="169" width="320" height="140" rx="14"/>
+  <rect x="1086" y="169" width="288" height="4" rx="2" fill="#75baff"/>
+  <text class="kicker" x="1090" y="193" style="fill:#8fc7ff">QUALITY GATES</text><text class="h" x="1090" y="219">Validate and explain variance</text>
+  <text class="body" x="1090" y="246">8 rules · balance identities</text><text class="body" x="1090" y="268">Year-over-year anomaly detection</text><text class="body" x="1090" y="290">Errors block submission</text>
+  <path class="arrow" d="M342 239 H382"/><path class="arrow" d="M682 239 H722"/><path class="arrow" d="M1022 239 H1062"/>
+
+  <rect class="band" x="28" y="353" width="1384" height="301" rx="18"/>
+  <circle cx="57" cy="387" r="15" fill="#4176a7"/><text class="step" x="57" y="392" text-anchor="middle">02</text>
+  <text class="section" x="84" y="394">AI assistance stays bounded; people control the filing</text>
+  <rect class="card" x="50" y="418" width="292" height="142" rx="14"/>
+  <rect x="66" y="418" width="260" height="4" rx="2" fill="#9dc8ff"/>
+  <text class="kicker" x="70" y="442" style="fill:#a5cbff">READ-ONLY FILING TOOLS</text><text class="h" x="70" y="468">Grounded context</text>
+  <text class="body" x="70" y="495">Statements · validation report</text><text class="body" x="70" y="517">Anomalies · filing checklist</text><text class="body" x="70" y="539">Agents cannot mutate figures</text>
+
+  <rect class="card" x="390" y="418" width="292" height="142" rx="14"/>
+  <rect x="406" y="418" width="260" height="4" rx="2" fill="#c4a7ff"/>
+  <text class="kicker" x="410" y="442" style="fill:#cebaff">LANGGRAPH AGENTS</text><text class="h" x="410" y="468">Explain · draft · assist</text>
+  <text class="body" x="410" y="495">Self-critique loop for notes</text><text class="body" x="410" y="517">ReAct assistant · ReWOO memo</text><text class="body" x="410" y="539">Gemini or deterministic mock</text>
+
+  <rect class="card" x="730" y="418" width="292" height="142" rx="14"/>
+  <rect x="746" y="418" width="260" height="4" rx="2" fill="#f4bd77"/>
+  <text class="kicker" x="750" y="442" style="fill:#f4bd77">PREPARER DECIDES</text><text class="h" x="750" y="468">Human-in-the-loop</text>
+  <text class="body" x="750" y="495">Edit and save final notes</text><text class="body" x="750" y="517">Review mapping suggestions</text><text class="body" x="750" y="539">AI never computes statement totals</text>
+
+  <rect class="card" x="1070" y="418" width="320" height="142" rx="14"/>
+  <rect x="1086" y="418" width="288" height="4" rx="2" fill="#f4bd77"/>
+  <text class="kicker" x="1090" y="442" style="fill:#f4bd77">REVIEW WORKFLOW</text><text class="h" x="1090" y="468">Preparer ⇄ Reviewer</text>
+  <text class="body" x="1090" y="495">Draft → submitted → in review</text><text class="body" x="1090" y="517">Changes requested / accepted</text><text class="body" x="1090" y="539">Comments · history · audit trail</text>
+  <path class="arrowPurple" d="M342 489 H382"/><path class="arrowPurple" d="M682 489 H722"/><path class="arrowPurple" d="M1022 489 H1062"/>
+
+  <rect class="muted" x="50" y="578" width="1340" height="52" rx="12"/>
+  <text class="body" x="72" y="601">Model boundary</text><text class="small" x="72" y="619">Numbers, validations, and exports are computed by code. AI output is a draft or explanation for a human to review.</text>
+  <path class="dash" d="M536 560 V578"/>
+
+  <rect class="band" x="28" y="674" width="1384" height="203" rx="18"/>
+  <circle cx="57" cy="708" r="15" fill="#b6753d"/><text class="step" x="57" y="713" text-anchor="middle">03</text>
+  <text class="section" x="84" y="715">Persist, audit, and observe</text>
+  <rect class="card" x="50" y="739" width="405" height="112" rx="14"/>
+  <rect x="66" y="739" width="373" height="4" rx="2" fill="#f4bd77"/>
+  <text class="kicker" x="70" y="763" style="fill:#f4bd77">DATA LAYER</text><text class="h" x="70" y="789">Neon PostgreSQL · hosted</text>
+  <text class="body" x="70" y="816">Dev branch; separate production branch planned</text><text class="small" x="70" y="838">SQLite remains available for local/test use</text>
+
+  <rect class="card" x="518" y="739" width="405" height="112" rx="14"/>
+  <rect x="534" y="739" width="373" height="4" rx="2" fill="#78c9ff"/>
+  <text class="kicker" x="538" y="763" style="fill:#8fc7ff">AUDIT + EXPORT</text><text class="h" x="538" y="789">Versioned filing records</text>
+  <text class="body" x="538" y="816">Users · trial balances · statements · workflow</text><text class="small" x="538" y="838">AI request log · PDF/XLSX statements and checklist</text>
+
+  <rect class="card" x="986" y="739" width="404" height="112" rx="14"/>
+  <rect x="1002" y="739" width="372" height="4" rx="2" fill="#78c9ff"/>
+  <text class="kicker" x="1006" y="763" style="fill:#8fc7ff">OBSERVABILITY</text><text class="h" x="1006" y="789">Metrics · traces · logs</text>
+  <text class="body" x="1006" y="816">Prometheus · Grafana · Tempo · Loki</text><text class="small" x="1006" y="838">OpenTelemetry and on-call responder in Compose</text>
+  <path class="arrow" d="M455 795 H510"/><path class="arrow" d="M923 795 H978"/>
+
+  <rect class="band" x="28" y="898" width="1384" height="174" rx="18"/>
+  <circle cx="57" cy="932" r="15" fill="#3b806e"/><text class="step" x="57" y="937" text-anchor="middle">04</text>
+  <text class="section" x="84" y="939">Gated cloud delivery</text>
+  <rect class="card" x="50" y="960" width="320" height="86" rx="13"/>
+  <text class="kicker" x="68" y="982">SOURCE + QUALITY GATE</text><text class="h" x="68" y="1007">GitHub Actions CI</text><text class="small" x="68" y="1029">Tests must pass on main</text>
+  <rect class="card" x="425" y="960" width="320" height="86" rx="13"/>
+  <text class="kicker" x="443" y="982" style="fill:#8fc7ff">DEV API</text><text class="h" x="443" y="1007">FastAPI Cloud</text><text class="small" x="443" y="1029">Deploy + health + lifecycle smoke</text>
+  <rect class="card" x="800" y="960" width="320" height="86" rx="13"/>
+  <text class="kicker" x="818" y="982" style="fill:#8fc7ff">DEV WEB</text><text class="h" x="818" y="1007">Vercel · React SPA</text><text class="small" x="818" y="1029">Runs after successful API deploy</text>
+  <rect class="muted" x="1170" y="960" width="220" height="86" rx="13"/>
+  <text class="kicker" x="1188" y="982" style="fill:#cbb9e8">PRODUCTION</text><text class="h" x="1188" y="1007">Manual approval</text><text class="small" x="1188" y="1029">Resources pending</text>
+  <path class="arrow" d="M370 1002 H417"/><path class="arrow" d="M745 1002 H792"/><path class="arrowPurple" d="M1120 1002 H1162"/>
+  <text class="small" x="44" y="1103">AI_PROVIDER=mock keeps the demo deterministic; production deployment is separate and manually gated.</text>
+</svg>
