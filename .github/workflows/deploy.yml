@@ -136,20 +136,25 @@ jobs:
           test -n "$FASTAPI_CLOUD_APP_ID" || { echo "Set FASTAPI_CLOUD_PROD_APP_ID in the protected production environment" >&2; exit 1; }
           uvx --from "fastapi[standard]" fastapi deploy --app-id "$FASTAPI_CLOUD_APP_ID"
 
-      - name: Wait for production API health and run lifecycle smoke
+      - name: Verify production API health (read-only)
         env:
           BASE: ${{ vars.FS_PROD_BACKEND_URL || 'https://fs-prod-api.fastapicloud.dev' }}
         run: |
           set -euo pipefail
           for attempt in $(seq 1 18); do
-            if curl --fail --silent --show-error "$BASE/healthz"; then
-              echo
+            if curl --fail --silent --show-error "$BASE/healthz" \
+                -o "$RUNNER_TEMP/fs-prod-health.json"; then
+              python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["status"] == "ok"' \
+                "$RUNNER_TEMP/fs-prod-health.json"
               break
             fi
             if [ "$attempt" -eq 18 ]; then
-              echo "API health check failed at $BASE/healthz" >&2
+              echo "Production API health check failed at $BASE/healthz" >&2
               exit 1
             fi
             sleep 10
           done
-          bash ops/smoke.sh "$BASE"
+          curl --fail --silent --show-error "$BASE/version" \
+            -o "$RUNNER_TEMP/fs-prod-version.json"
+          python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["app"] == "Financial Statement"' \
+            "$RUNNER_TEMP/fs-prod-version.json"
