@@ -107,7 +107,7 @@ The Financial Statement app applies the full course workflow to one application:
 - **Problem and acceptance criteria before implementation:** see [The problem](#the-problem), [product-spec.md](product-spec.md), and the public [GitHub Issues tracker](https://github.com/yazdanparasthesam/financial-statement/issues).
 - **A connected frontend, backend, and persistent database:** React/Vite, FastAPI, and SQLite/PostgreSQL, with local full-stack startup via `docker compose up --build`.
 - **Automated tests:** backend unit and integration tests, frontend tests, and end-to-end smoke checks. Commands and scope are documented in [docs/testing.md](docs/testing.md).
-- **Containerization and deployment:** Docker Compose for local use; FastAPI Cloud + Vercel for the live dev deployment. The separate production path is manual and remains pending provider setup and approval protection.
+- **Containerization and deployment:** Docker Compose for local use; FastAPI Cloud + Vercel for the live dev deployment. The separate production path is configured in GitHub Actions and protected by the `production` environment; production deployment remains undispatched pending preflight.
 - **CI/CD and rollback:** CI gates the dev API deployment, the frontend deploy follows a successful API deploy and smoke test, and a separate production/rollback workflow is documented in GitHub Actions.
 - **Observability, user-impact alerting, and an on-call responder:** correlated metrics, traces, structured logs, alert rules, and a constrained responder agent; see [Observability, alerting & on-call](#observability-alerting-on-call).
 - **English documentation:** the UI and statutory context are project-specific; reviewer-facing docs are in English.
@@ -127,7 +127,7 @@ There are **12 criteria worth 24 points**; **10 points** are required to pass. T
 | 6 | Testing (2) | Unit and integration tests both run and pass with a documented command. | Backend unit/integration, frontend tests, responder tests, and smoke checks are listed in [Tests](#tests) and [docs/testing.md](docs/testing.md). Run the documented test commands when reproducing the submission. |
 | 7 | Containerization (2) | The full system, including its database, starts through Docker/Compose with one command. | [docker-compose.yml](docker-compose.yml) starts the app and database; the optional `obs` profile adds the telemetry stack. See [Quickstart](#quickstart-one-command). |
 | 8 | Deployment (2) | A working public deployment or a clear deployment demo is available. | Dev API [`fs-dev-api`](https://fs-dev-api.fastapicloud.dev) and web app [`fs-dev-web`](https://fs-dev-web.vercel.app) are live. Deployment and browser-test details are in [docs/deployment.md](docs/deployment.md) and [evidence/README.md](evidence/README.md). The filing lifecycle and production setup are still in progress. |
-| 9 | CI/CD (3) | Full credit requires tests, automatic dev deployment, and a manual production deployment path. | [GitHub Actions workflows](.github/workflows/) include CI, CI-gated dev deployment, a manual production workflow, and rollback. The last confirmed green sequence was CI #10, API Deploy #10, and Deploy Vercel Web #3. The required-reviewer environment is configured; production targets/secrets and a verified manual production run remain pending (**2/3 currently**). Check Actions for a green run on source-sync commit `a1f5fe6`. |
+| 9 | CI/CD (3) | Full credit requires tests, automatic dev deployment, and a manual production deployment path. | [GitHub Actions workflows](.github/workflows/) include CI, CI-gated dev deployment, a manual production workflow, and rollback. The latest confirmed green dev sequence is commit `efb3596`: CI #32, API Deploy #32, and Deploy Vercel Web #25. Under the stated rubric wording, this is a **3/3 self-assessment**: tests pass, automatic dev deployment works, and the protected manual production path is on `main` (Deploy #32 confirms `deploy-prod` is skipped on ordinary pushes). The production job has not been dispatched and the production apps remain undeployed; this is not a claim of production deployment or verification. Final scoring is the evaluator’s decision. |
 | 10 | Observability (2) | A key user journey has correlated metrics, traces, and structured logs; telemetry excludes customer data/credentials and is viewable in a UI. | [docs/observability.md](docs/observability.md), [security/telemetry-policy.md](security/telemetry-policy.md), the telemetry tests, and the Grafana golden-journey dashboard describe the implementation. The optional Compose observability profile provides the local UI and collection stack. |
 | 11 | Alerting on User Impact (1) | At least one user-impact alert exists. | Four rules are defined in [`observability/prometheus/rules/user-impact.yaml`](observability/prometheus/rules/user-impact.yaml) and routed through Alertmanager. |
 | 12 | On-Call Agent (2) | An agent wakes on an alert and safely fixes the issue. | [oncall-agent/](oncall-agent/) contains the responder, allow-listed recovery actions, and tests. [`./ops/alert-drill.sh`](ops/alert-drill.sh) exercises the alert-to-recovery path and records incident reports under [`ops/incidents/`](ops/incidents/). |
@@ -165,7 +165,7 @@ The system separates **data preparation**, **deterministic financial computation
 - **Bounded AI assistance:** LangGraph workflows draft notes, explain anomalies, answer read-only filing questions, and prepare audit memos. People edit/finalize notes and decide whether to submit or accept a filing.
 - **Persistence:** hosted dev uses the Neon `dev` branch; local/test runs can use SQLite. Production is intended to use a separate Neon branch and credentials.
 - **Observability:** API, AI-request, and workflow activity are instrumented; the optional Compose profile provisions Prometheus, Grafana, Tempo, Loki, and the on-call responder.
-- **Deployment gate:** GitHub Actions CI gates the dev API deployment; the Vercel dev deployment follows only after the API deploy and smoke test succeed. The GitHub `production` environment now requires owner approval and is restricted to `main`; production resources/secrets and a verified manual production run remain pending.
+- **Deployment gate:** GitHub Actions CI gates the dev API deployment; the Vercel dev deployment follows only after the API deploy and smoke test succeed. The GitHub `production` environment requires owner approval and is restricted to `main`; the FastAPI Cloud and Vercel production projects exist, production secrets and targets are configured, and the manual workflow is on `main`; production deployment and database connectivity verification remain pending.
 
 | Layer | Main implementation | Responsibility |
 |---|---|---|
@@ -186,7 +186,7 @@ The system separates **data preparation**, **deterministic financial computation
 | AI | LangChain + LangGraph; Google Gemini (`gemini-2.0-flash`) or deterministic `MockChatModel` | Self-criticism notes loop · ReAct assistant · ReWOO audit memo · explanations · mapping suggestions |
 | Exports | openpyxl, fpdf2 | XLSX/PDF statements & checklist |
 | Containers | Docker, docker compose, nginx | One-command full stack |
-| CI/CD | GitHub Actions: CI gates API dev deployment; successful API deploy triggers Vercel dev deployment; production is manually gated | The last confirmed green chain was CI #10 (`10f7387`), API Deploy #10, and Deploy Vercel Web #3; the source-sync commit `a1f5fe6` was pushed afterward, so check its Actions runs before claiming that commit green. The protected production environment is configured, while production resources/deploy remain pending |
+| CI/CD | GitHub Actions: CI gates API dev deployment; successful API deploy triggers Vercel dev deployment; production is manually gated | Commit `efb3596` has CI #32, API Deploy #32, and Deploy Vercel Web #25 green for dev. Production environment secrets and targets are configured; the API and frontend remain undeployed, and production dispatch awaits preflight plus token rotation |
 | Deploy | FastAPI Cloud dev API and Vercel `fs-dev-web` are live; Vercel remains Git-unconnected | API: https://fs-dev-api.fastapicloud.dev · Web: https://fs-dev-web.vercel.app; browser flow reaches Draft Review (notes finalization, submission, and production pending); see [docs/deployment.md](docs/deployment.md) |
 | Observability | Prometheus, Grafana, Tempo, Loki, OTel Collector, Alertmanager | Metrics/traces/logs on one trace id; user-impact alerts wake the on-call agent ([docs/observability.md](docs/observability.md)) |
 
@@ -436,8 +436,90 @@ financial-statement/
 
 - Dev API: FastAPI Cloud `fs-dev-api` is **Live** at `https://fs-dev-api.fastapicloud.dev`; gated `/healthz` and lifecycle smoke passed.
 - Dev frontend: Vercel `fs-dev-web` is live at `https://fs-dev-web.vercel.app`; public checks returned HTTP 200 for `/` and `/login`. Browser registration, balanced trial-balance upload, statements, validation, mock notes, and review memo succeeded. The filing remains Draft; finalize notes before submitting for review.
-- CI/CD: The last confirmed green chain was CI #10 (`10f7387`), API Deploy #10, and Deploy Vercel Web #3. Vercel remains Git-unconnected; its dev workflow deploys only after the successful API deployment. The later source-sync commit `a1f5fe6` needs its own green Actions run.
-- Production API/frontend: separate production API/web targets, production secrets, and a verified manual production deployment remain pending. The GitHub `production` environment is configured with a required owner reviewer, self-review allowed, administrator bypass disabled, and deployment restricted to `main`.
+- CI/CD: Commit `efb3596` has green CI #32, API Deploy #32, and Deploy Vercel Web #25. These are CI-gated **dev** deploys; the production path remains manual. Vercel projects remain Git-unconnected.
+- Production API: FastAPI Cloud `fs-prod-api` exists but is **Not deployed**; root is `backend` and source is disconnected. `DATABASE_URL` and `JWT_SECRET` are saved as masked secrets; the user confirmed Neon production password rotation, but API-to-Neon connectivity is still unverified. `CORS_ORIGINS=https://fs-prod-web.vercel.app` is set.
+- Production frontend: Vercel project `fs-prod-web` is Git-unconnected and has no deployment. CLI confirms root `frontend`, preset `Other`, `npm ci`, `npm run build`, and `dist`. `VITE_API_URL=https://fs-prod-api.fastapicloud.dev` is a Production-only Config value; assigned domain is `https://fs-prod-web.vercel.app`. Project ID is `prj_kd9wWSZ1WLYM8IClegKwMTRQyl44`.
+- Production gate: GitHub `production` contains `FASTAPI_CLOUD_PROD_APP_ID`, `FASTAPI_CLOUD_PROD_TOKEN`, and `VERCEL_PROD_TOKEN`; production API secrets are not duplicated at repository scope. The Vercel token is project-scoped but never expires; the user chose to defer rotation. Rotate it before any production dispatch. Required reviewer/self-review/admin-bypass/main-branch protections remain as documented above.
+- Production workflow: `.github/workflows/deploy.yml` is pushed on `main` at `efb3596`, with a manual production API + Vercel path behind the `production` environment. Its normal CI-triggered Deploy #32 run shows `deploy-dev` succeeded and `deploy-prod` skipped (evidence 93). The production job has not been dispatched. Vercel project/team IDs and deploy secrets are environment-scoped. The Vercel token is non-expiring (rotation deferred), and API-first ordering can leave a partial rollout if the later Vercel build fails (reorder deferred until final preflight). No production deployment has occurred.
+
+<details>
+<summary>Neon production branch setup evidence (password masked)</summary>
+
+The Neon project list and branch overview show the existing `financial-statement` project and its `production` branch. The Connect dialog confirms `production`, database `neondb`, role `neondb_owner`, and connection pooling enabled. These screenshots document branch/connection settings only; they do **not** prove password rotation, API connectivity, or production deployment.
+
+![Neon project list and region](evidence/72-neon-project-list.png)
+
+![Neon production branch overview](evidence/73-neon-production-branch-overview.png)
+
+![Neon pooled connection settings for production; password remains masked](evidence/74-neon-production-pooled-connect.png)
+
+</details>
+
+<details>
+<summary>FastAPI Cloud production app secrets (values masked)</summary>
+
+`fs-prod-api` shows `DATABASE_URL` and `JWT_SECRET` saved as masked values. The app remains **Not deployed**; this screenshot does not prove a database connection.
+
+![FastAPI Cloud fs-prod-api environment variable names; secret values masked and app not deployed](evidence/75-fastapi-cloud-prod-env-secrets-masked.png)
+
+</details>
+
+<details>
+<summary>FastAPI Cloud production source settings</summary>
+
+The `fs-prod-api` app remains **Not deployed**. Its root directory is `backend` and its GitHub repository source is **Not Connected**, preserving the GitHub Actions deployment gate.
+
+![FastAPI Cloud production app has backend root and Git source disconnected](evidence/76-fastapi-cloud-prod-source-root-confirmed.png)
+
+</details>
+
+<details>
+<summary>GitHub production environment protection and secrets</summary>
+
+The `production` environment is restricted to `main`, has a required owner reviewer, allows self-review (the owner is the only reviewer), and has administrator bypass disabled. Environment-scoped FastAPI Cloud production secret names are present. This is a manual approval gate, not independent approval.
+
+![GitHub production environment restricted to main with protected FastAPI Cloud secret names](evidence/77-github-production-environment-secrets.png)
+
+![Production deploy secrets are environment-scoped; repository secrets retain only dev FastAPI and Vercel entries](evidence/78-github-prod-secrets-env-only.png)
+
+</details>
+
+<details>
+<summary>Production Vercel project creation</summary>
+
+The empty Vercel project `fs-prod-web` was created under team `hesam2`. It is not deployed; keep Git disconnected so deployments remain controlled by GitHub Actions.
+
+![Vercel CLI confirms fs-prod-web project created without a deployment](evidence/79-vercel-fs-prod-web-created.png)
+
+![Vercel build fields and frontend root entry; root field had a separate unsaved Save control](evidence/80-vercel-fs-prod-web-settings.png)
+
+![Vercel CLI inspection confirms the persisted root is still dot and needs correction](evidence/86-vercel-cli-inspect-root-uncommitted.png)
+
+![Vercel CLI confirms the saved Root Directory is now frontend](evidence/87-vercel-cli-root-frontend-confirmed.png)
+
+![Vercel CLI JSON lists the production project ID and confirms no production deployment URL yet](evidence/88-vercel-prod-project-id.png)
+
+![Vercel CLI lists the hesam2 team ID for production project scope](evidence/89-vercel-team-id.png)
+
+![Vercel project Git settings state that fs-prod-web is not connected to a Git repository](evidence/92-vercel-prod-git-disconnected.png)
+
+![GitHub Actions confirms CI #32, dev API Deploy #32, and dev Vercel Web #25 are green for efb3596](evidence/91-github-dev-chain-efb3596-green.png)
+
+![Deploy #32 from the normal workflow_run event shows deploy-dev succeeded and deploy-prod skipped](evidence/93-deploy32-production-job-skipped.png)
+
+![Vercel confirms VITE_API_URL exists for Production; its URL was checked before saving](evidence/81-vercel-fs-prod-web-prod-api-url.png)
+
+![Vercel production domain fs-prod-web.vercel.app is assigned; no deployment exists yet](evidence/82-vercel-fs-prod-web-domain.png)
+
+![FastAPI Cloud production app has the exact Vercel origin in CORS_ORIGINS; app remains not deployed](evidence/83-fastapi-cloud-prod-cors-origin.png)
+
+![GitHub production environment contains VERCEL_PROD_TOKEN; token value is not shown](evidence/84-github-production-vercel-token-secret.png)
+
+![GitHub production environment now contains both Vercel org and project ID secrets](evidence/90-github-prod-vercel-ids-added.png)
+
+![Vercel token is scoped to fs-prod-web but currently never expires; replace before use](evidence/85-vercel-token-project-scope-expiry.png)
+
+</details>
 
 <a id="peer-review"></a>
 ## 🤝 Peer Review Guide
@@ -456,7 +538,7 @@ CI/CD, evidence, and mandatory peer reviews—is in
 
 ### Current Course-Submission Status
 
-The dev API/frontend and CI-gated dev deploy are live. The browser filing is currently Draft: finalize/save the notes before submitting it for review. The required-reviewer production environment is now configured for `main` with owner approval; production resources/secrets and the manual production run remain pending. The published GitHub video-demo link is included above. The optional repository copy at `docs/videos/` remains a separate owner-managed asset. See the [course submission runbook](docs/course-submission-runbook.md) for the step-by-step status and remaining actions.
+The dev API/frontend and CI-gated dev deploy are live; commit `efb3596` is green for CI #32, API Deploy #32, and Vercel Web #25. The browser filing is currently Draft: finalize/save the notes before submitting it for review. Production approval, API/Vercel projects, runtime settings, CORS, and environment-scoped secrets are configured. `fs-prod-api` and `fs-prod-web` remain undeployed; the database connection is unverified. The production token rotation and workflow-order review are deferred until final preflight. The manual production job is on `main` but was skipped on the normal CI-triggered run (evidence 93). The published GitHub video attachment is embedded above. The repository-side `.webm` copy is not used by the player and needs a valid video file before it can serve as a playable local copy. See the [course submission runbook](docs/course-submission-runbook.md) for the step-by-step status and remaining actions.
 
 <a id="license"></a>
 ## 📜 License

@@ -107,6 +107,28 @@ embedded there as an in-progress instruction only; it is intentionally not index
 | `69-dev-web-validation-passed.png` | Validation reports 8/8 passed and clean; prior-year checks are skipped because none is on file | **owner-confirmed (2026-10-27; synthetic data)** |
 | `70-dev-web-mock-notes-generated.png` | Mock AI Revenue note is generated and displayed; **Save final text has not yet been clicked** | **owner-confirmed (2026-10-27; redacted crop)** |
 | `71-dev-web-review-draft.png` | Review page shows mock audit memo and a clear gate, but filing remains Draft; Submit for review has not been clicked | **owner-confirmed (2026-10-27; pre-submit)** |
+| `72-neon-project-list.png` | Neon project list shows `financial-statement` in Frankfurt on the Free plan; no credentials shown | **owner-provided (2026-10-28; project-level evidence)** |
+| `73-neon-production-branch-overview.png` | Neon overview shows the persistent `production` default branch and three project branches | **owner-provided (2026-10-28; branch exists, API not deployed)** |
+| `74-neon-production-pooled-connect.png` | Connect dialog selects `production` / `neondb` / `neondb_owner`; pooling on and password masked; password rotation not confirmed | **owner-provided (2026-10-28; settings evidence, connection not yet tested)** |
+| `75-fastapi-cloud-prod-env-secrets-masked.png` | FastAPI Cloud `fs-prod-api` lists `DATABASE_URL` and `JWT_SECRET` with masked values; app still Not deployed | **owner-provided (2026-10-28; values hidden; database connectivity not tested)** |
+| `76-fastapi-cloud-prod-source-root-confirmed.png` | `fs-prod-api` settings show root `backend`, GitHub repository **Not Connected**, and app still Not deployed | **owner-provided (2026-10-28; preserves CI deployment gate)** |
+| `77-github-production-environment-secrets.png` | `production` environment shows required reviewer (self-review allowed), admin bypass disabled, `main` only, and the two FastAPI Cloud prod secret names | **owner-provided (2026-10-28; values hidden; repo-level duplicates still pending cleanup)** |
+| `78-github-prod-secrets-env-only.png` | Production API secrets appear under Environment secrets; repository list retains only dev FastAPI and Vercel secrets | **owner-provided (2026-10-28; names only, values hidden)** |
+| `79-vercel-fs-prod-web-created.png` | Vercel CLI confirms empty `fs-prod-web` project created under team `hesam2`; no deployment shown | **owner-provided (2026-10-28; Git connection/deployment not performed)** |
+| `80-vercel-fs-prod-web-settings.png` | Build fields are visible and `frontend` is typed in Root Directory, but its separate Save button remains active; later CLI inspect confirms root was still `.` | **owner-provided (2026-10-28; root setting not saved)** |
+| `81-vercel-fs-prod-web-prod-api-url.png` | Confirms `VITE_API_URL` is saved for Production; URL was verified in the edit form before saving | **owner-provided (2026-10-28; no redeploy)** |
+| `82-vercel-fs-prod-web-domain.png` | Vercel assigns `fs-prod-web.vercel.app` as the Production domain; shows `No Deployment` | **owner-provided (2026-10-28; domain assigned, no deployment)** |
+| `83-fastapi-cloud-prod-cors-origin.png` | FastAPI Cloud `fs-prod-api` shows `CORS_ORIGINS=https://fs-prod-web.vercel.app`; DATABASE_URL/JWT_SECRET stay masked and app is not deployed | **owner-provided (2026-10-28; configuration saved, no deployment)** |
+| `84-github-production-vercel-token-secret.png` | GitHub `production` environment lists `VERCEL_PROD_TOKEN` with no value exposed | **owner-provided (2026-10-28; token is set but workflow not ready)** |
+| `85-vercel-token-project-scope-expiry.png` | Vercel token is scoped to `fs-prod-web` but marked `Never expires`; replace with finite expiry before use | **owner-provided (2026-10-28; remediation required)** |
+| `86-vercel-cli-inspect-root-uncommitted.png` | Read-only Vercel CLI inspection reports Root Directory `.` for `fs-prod-web`, contradicting the unsaved UI entry of `frontend`; no deployment | **owner-provided (2026-10-28; root correction required)** |
+| `87-vercel-cli-root-frontend-confirmed.png` | Vercel CLI inspection confirms saved Root Directory is `frontend` and build settings match the intended config | **owner-provided (2026-10-28; no deployment)** |
+| `88-vercel-prod-project-id.png` | Vercel CLI JSON confirms project ID for `fs-prod-web`; `latestProductionUrl` is empty, so no deployment is recorded | **owner-provided (2026-10-28; read-only metadata)** |
+| `89-vercel-team-id.png` | Vercel CLI JSON confirms team slug `hesam2` and team ID for the production project | **owner-provided (2026-10-28; read-only metadata)** |
+| `90-github-prod-vercel-ids-added.png` | GitHub `production` environment lists `VERCEL_PROD_ORG_ID` and `VERCEL_PROD_PROJECT_ID`; secret values are hidden | **owner-provided (2026-10-28; environment-only configuration)** |
+| `91-github-dev-chain-efb3596-green.png` | GitHub Actions shows CI #32, dev API Deploy #32, and dev Vercel Web #25 green for `efb3596`; no production dispatch | **owner-provided (2026-10-28; dev-only verification)** |
+| `92-vercel-prod-git-disconnected.png` | Vercel project Settings explicitly says `fs-prod-web` is not connected to a Git repository | **owner-provided (2026-10-28; manual gate preserved)** |
+| `93-deploy32-production-job-skipped.png` | GitHub Deploy #32: `deploy-dev` succeeded and `deploy-prod` was skipped for the automatic `workflow_run` event | **owner-provided (2026-10-28; manual production gate verified)** |
 
 See [`docs/course-submission-runbook.md`](../docs/course-submission-runbook.md) for the
 step-by-step procedure and screenshot placement.

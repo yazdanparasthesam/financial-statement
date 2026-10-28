@@ -2,12 +2,13 @@
 
 This runbook records the Financial Statement project and the remaining course-submission gates.
 The source and public tracker are published; local full-stack/observability, hosted CI, alert/on-call,
-and the temporary Neon-branch app smoke are verified. **The project is not fully submission-complete**:
-public deployment/CD and three mandatory peer reviews remain owner tasks. Render's account flow
+the dev API/frontend, and the temporary Neon-branch app smoke are verified. **The project is not fully submission-complete**:
+production deployment and three mandatory peer reviews remain owner tasks. Render's account flow
 repeatedly blocked free service creation with a card prompt; no card was entered and no Render
 service was created. The selected no-card route is FastAPI Cloud for the API, Vercel for the
-frontend, and Neon for PostgreSQL. The provider-dashboard captures below prove account/setup access
-only—not an app deployment. Save only redacted, successful evidence screenshots in `evidence/`;
+frontend, and Neon for PostgreSQL. The dev API/frontend are live; production `fs-prod-api` and the Neon
+`production` branch exist, but production is not deployed. Provider screenshots document setup state,
+not a completed production deployment. Save only redacted, successful evidence screenshots in `evidence/`;
 record failed attempts in prose, never as evidence frames.
 
 > Keep your own Git identity. Do not copy credentials into this repo. Never share `.env`,
@@ -22,8 +23,8 @@ record failed attempts in prose, never as evidence frames.
 | Agent team + context | `docs/agent-team.md`, `AGENTS.md` and modular docs are in the public repo | none for rubric artifact; continue issue-linked work |
 | Full stack + tests | Compose DB/backend/frontend healthy; live HTTP smoke **28/28**; backend 79, frontend 27, and responder tests pass; live Neon API smoke passes | optional richer two-year UI demo for cash-flow/anomaly evidence |
 | Containerization | full app Compose (Postgres + backend + frontend) and `obs` profile verified locally | no blocker for local rubric criterion |
-| Deployment | Neon Postgres policy and app-to-Neon smoke verified; FastAPI Cloud `fs-dev-api` is Live at `https://fs-dev-api.fastapicloud.dev`; CI-gated health/lifecycle smoke passed | configure Vercel/CORS and production gate; record frontend/production URLs and hosted production smoke results |
-| CI/CD + rollback | deploy workflow updated locally for FastAPI Cloud API; hosted CI run #3 on `6b643c1` passed all four jobs | commit/push the updated workflow, verify CI-gated dev deploy, add Vercel deployment and prove manual production approval; current public issue #9 remains open |
+| Deployment | Dev FastAPI Cloud API and Vercel frontend are live; dev database smoke passed. FastAPI Cloud `fs-prod-api` is created but not deployed; Neon `production` branch confirmed and pooled settings captured | configure production API runtime vars/secrets, GitHub deploy secrets, production Vercel project/path; then verify manual deployment |
+| CI/CD + rollback | Commit `efb3596`: CI #32, API Deploy #32, Vercel Web #25 are green for dev; production path is manual and approval-gated, not dispatched | configure production secrets/targets, then run the protected manual production workflow and verify API + web |
 | Observability + alert | Grafana/Loki/Tempo/Prometheus evidence; four user-impact rules; alert drill fired and cleared | reconcile public issue #10/#11 status with evidence |
 | On-call responder | real alert reached the responder; it remediated, health recovered, and incident report was written | reconcile public issue #12 status with evidence |
 | Peer reviews | not yet completed | complete **3 peer reviews** on course platform (mandatory to pass) |
@@ -408,7 +409,7 @@ The project settings now specify root `frontend`, install `npm ci`, build `npm r
 
 The local project metadata was inspected to obtain Vercel's organization/project identifiers; the public evidence crop retains only the project name. The Vercel token form was set to project scope `fs-dev-web` with a 30-day expiry (2026-11-26); the token value is not retained in evidence. The owner added GitHub repository secrets `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, and `VERCEL_TOKEN`; the values remain hidden. Keep Vercel Git-unconnected. The committed `.github/workflows/deploy-vercel.yml` deploys the exact SHA only after the CI-gated API Deploy workflow succeeds. `frontend/vercel.json` supplies the Vite SPA fallback for direct routes such as `/login`, and the workflow smoke check exercises both `/` and `/login`.
 
-The latest sequence is green: CI #10 for `10f7387`, API Deploy #10, and Deploy Vercel Web #3. Independent public HTTP checks returned 200 for the frontend `/`, `/login`, and API `/healthz`. The owner then completed the live browser workflow through registration/login, company and FY2026 filing creation, a 20-account balanced trial-balance upload, statement generation, 8/8 validation, mock notes, and an audit memo. This successful API-backed flow functionally confirms the dev frontend/API connection without revealing `VITE_API_URL`. The filing remains **Draft**. The Export checklist shows notes not finalized and submission/reviewer acceptance unchecked. The following cropped status snapshot is progress-only, not completion evidence. All stored evidence copies redact the account email and any entered identifiers.
+The latest confirmed dev sequence is green: commit `efb3596`, CI #32, API Deploy #32, and Deploy Vercel Web #25. Independent public HTTP checks returned 200 for the frontend `/`, `/login`, and API `/healthz`. The owner then completed the live browser workflow through registration/login, company and FY2026 filing creation, a 20-account balanced trial-balance upload, statement generation, 8/8 validation, mock notes, and an audit memo. This successful API-backed flow functionally confirms the dev frontend/API connection without revealing `VITE_API_URL`. The filing remains **Draft**. The Export checklist shows notes not finalized and submission/reviewer acceptance unchecked. The following cropped status snapshot is progress-only, not completion evidence. All stored evidence copies redact the account email and any entered identifiers.
 
 ![In-progress Export checklist: notes finalization, review submission, and reviewer acceptance remain unchecked; not completion evidence](images/dev-export-checklist-pending.png)
 
@@ -452,7 +453,61 @@ The latest sequence is green: CI #10 for `10f7387`, API Deploy #10, and Deploy V
 
 ![Review page shows a clear mock audit memo; filing is still Draft and not yet submitted](../evidence/71-dev-web-review-draft.png)
 
-The exact dev CORS origin was saved and applied by the gated API deployment. Production resources and GitHub `production` reviewer protection remain pending. The next dev-demo action is to click **Submit for review** on the synthetic filing and capture its resulting status; do not use real financial data.
+The exact dev CORS origin was saved and applied by the gated API deployment. Production API/Vercel settings, CORS, environment secrets, and approval protection are configured; the apps remain undeployed and API-to-Neon connectivity is unverified. Commit `efb3596` has green CI #32, dev API Deploy #32, and dev Vercel Web #25. Deploy #32 shows `deploy-dev` succeeded and `deploy-prod` skipped (evidence 93); production remains manual. The Vercel token rotation and API-first workflow-order review are deferred until final preflight. The dev filing is still Draft; only use synthetic data.
+### Production provider progress (2026-10-28; setup evidence, not deployment proof)
+
+The Neon project list shows the `financial-statement` project in Frankfurt with three branches. The branch overview confirms `production` is the default, non-expiring branch on the Free plan. The Connect dialog is set to branch `production`, database `neondb`, role `neondb_owner`, with pooling enabled; the password is masked. The user confirmed the production password rotation separately; the screenshot itself confirms branch/connection settings only. The FastAPI Cloud app has not yet been tested against this database.
+
+![Neon project list and region](../evidence/72-neon-project-list.png)
+
+![Neon production branch overview](../evidence/73-neon-production-branch-overview.png)
+
+![Neon pooled connection settings for production; password masked](../evidence/74-neon-production-pooled-connect.png)
+
+![FastAPI Cloud fs-prod-api has DATABASE_URL and JWT_SECRET saved as masked secrets; app not deployed](../evidence/75-fastapi-cloud-prod-env-secrets-masked.png)
+
+![FastAPI Cloud production app uses backend root and has Git source Not Connected](../evidence/76-fastapi-cloud-prod-source-root-confirmed.png)
+
+![GitHub production environment has the protected FastAPI Cloud secret names; values hidden](../evidence/77-github-production-environment-secrets.png)
+
+![Production FastAPI secrets are environment-only; repository-level production duplicates removed](../evidence/78-github-prod-secrets-env-only.png)
+
+Production Vercel project `fs-prod-web` is configured but not deployed. CLI confirms root `frontend`, preset `Other`, install `npm ci`, build `npm run build`, and output `dist`. `VITE_API_URL=https://fs-prod-api.fastapicloud.dev` is saved for Production, the assigned domain is `https://fs-prod-web.vercel.app`, and FastAPI Cloud `CORS_ORIGINS` matches that exact origin. The Vercel project ID is `prj_kd9wWSZ1WLYM8IClegKwMTRQyl44`; the team ID is `team_HpUqb7I7uxT4kKNDP7yMLOQg`. Both IDs are now saved as GitHub `production` environment secrets (`VERCEL_PROD_PROJECT_ID` and `VERCEL_PROD_ORG_ID`). GitHub `production` contains `VERCEL_PROD_TOKEN`; its project-scoped token never expires, and the user chose to defer rotation. Rotate it before production dispatch. The `.github/workflows/deploy.yml` manual production API + Vercel path is pushed on `main` at `efb3596`; CI #32 and the automatic dev API/web deployments are green. Current order deploys and health-checks the API before Vercel production pull/build/deploy; a later frontend preparation failure could leave a partial API-only rollout. The user deferred reordering until final preflight; review this risk before any production dispatch. The production job remains undispatched. No production deployment occurred.
+
+![Vercel CLI confirms empty production web project fs-prod-web created; no deployment](../evidence/79-vercel-fs-prod-web-created.png)
+
+![Vercel build settings screen with frontend root entered but root save still pending](../evidence/80-vercel-fs-prod-web-settings.png)
+
+![Vercel CLI reports the persisted root is dot, requiring correction](../evidence/86-vercel-cli-inspect-root-uncommitted.png)
+
+![Vercel CLI confirms saved root frontend](../evidence/87-vercel-cli-root-frontend-confirmed.png)
+
+![Vercel CLI JSON lists fs-prod-web project ID; latestProductionUrl is empty](../evidence/88-vercel-prod-project-id.png)
+
+![Vercel CLI identifies the hesam2 team ID](../evidence/89-vercel-team-id.png)
+
+![Vercel Git settings explicitly confirm fs-prod-web is not connected to a repository](../evidence/92-vercel-prod-git-disconnected.png)
+
+![Vercel confirms the VITE_API_URL Production variable is saved](../evidence/81-vercel-fs-prod-web-prod-api-url.png)
+
+![Vercel production domain fs-prod-web.vercel.app is assigned; no deployment exists yet](../evidence/82-vercel-fs-prod-web-domain.png)
+
+![FastAPI Cloud production CORS origin is set; app is not deployed](../evidence/83-fastapi-cloud-prod-cors-origin.png)
+
+![GitHub production environment contains VERCEL_PROD_TOKEN; token value is not shown](../evidence/84-github-production-vercel-token-secret.png)
+
+![GitHub production environment now contains both Vercel org and project ID secrets](../evidence/90-github-prod-vercel-ids-added.png)
+
+![GitHub Actions confirms the efb3596 CI/dev API/dev web chain is green](../evidence/91-github-dev-chain-efb3596-green.png)
+
+![Deploy #32 shows deploy-dev succeeded and deploy-prod skipped on the normal workflow_run event](../evidence/93-deploy32-production-job-skipped.png)
+
+![Vercel project token is scoped to fs-prod-web but never expires; replace before use](../evidence/85-vercel-token-project-scope-expiry.png)
+
+FastAPI Cloud `fs-prod-api` has been created and now shows `DATABASE_URL` and `JWT_SECRET` as masked environment secrets. The app still shows **Not deployed**. Its Settings page confirms root `backend` and repository **Not Connected**. The secret screenshot confirms variable names are saved, not that the database connection works. Do not use its dashboard deployment control; the GitHub production workflow is the intended gate. Commit `efb3596` is pushed to `main`; CI #32, automatic dev API Deploy #32, and Vercel Web #25 are green. The production job is manually gated and was not dispatched; these runs do not constitute production deployment evidence.
+
+**Still required before production dispatch:** confirm the production environment secrets `VERCEL_PROD_ORG_ID` and `VERCEL_PROD_PROJECT_ID` remain present; review and push the local workflow change using the owner's Git identity; rotate the non-expiring Vercel token as the user deferred; and complete a protected manual production deployment only after explicit user confirmation. The production API-to-Neon connection is not yet verified. Never paste credentials into chat or screenshots. Stop if a provider requests card/payment information.
+
 ## Step 8 — Final evidence and course submission
 
 1. In `evidence/README.md`, tick each evidence row only after the screenshot exists.
