@@ -5,7 +5,6 @@ trial balance into statutory financial statements, validate them against filing 
 AI-drafted explanations and notes, and run a proper **submit → review → accept** workflow with a
 full audit trail — instead of juggling spreadsheets and email.
 
-> Built for the [DataTalksClub AI Dev Tools Zoomcamp 2026](https://github.com/DataTalksClub/ai-dev-tools-zoomcamp) final project.
 > English UI, Iranian statutory context (اظهارنامه مالیاتی / صورت‌های مالی).
 
 > 🔗 **GitHub Repo:** [yazdanparasthesam/financial-statement](https://github.com/yazdanparasthesam/financial-statement)<br>
